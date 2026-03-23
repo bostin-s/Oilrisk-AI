@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}OilRisk AI — Global{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" />
+
+  <!-- Leaflet CSS — free, no API key -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+
+  <!-- Leaflet JS — free, no API key -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+</head>
+<body>
+
+<!-- Animated background -->
+<div class="world-bg">
+  <div class="world-grid"></div>
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
+</div>
+
+<!-- Navbar -->
+<nav class="navbar">
+  <a class="nav-brand" href="/">
+    <div class="nav-logo">🛢️</div>
+    <span class="nav-title">OilRisk<span class="accent">AI</span></span>
+  </a>
+  <ul class="nav-links">
+    <li><a href="/"              {% if request.path=='/'              %}class="active"{% endif %}>Dashboard</a></li>
+    <li><a href="/predict"       {% if request.path=='/predict'       %}class="active"{% endif %}>Predict</a></li>
+    <li><a href="/batch-predict" {% if request.path=='/batch-predict' %}class="active"{% endif %}>Batch</a></li>
+    <li><a href="/visualizations"{% if request.path=='/visualizations'%}class="active"{% endif %}>Charts</a></li>
+    <li><a href="/dataset"       {% if request.path=='/dataset'       %}class="active"{% endif %}>Dataset</a></li>
+    <li><a href="/sustainability" {% if request.path=='/sustainability'%}class="active"{% endif %}>Sustainability</a></li>
+  </ul>
+  <div class="nav-status">
+    {% if pipeline_done %}
+      <span class="badge badge-success"><span class="live-dot"></span>Pipeline Ready</span>
+    {% elif pipeline_running %}
+      <span class="badge badge-warning">⟳ Running…</span>
+    {% else %}
+      <span class="badge badge-muted">○ Not Run</span>
+    {% endif %}
+  </div>
+</nav>
+
+<main class="main-content">{% block content %}{% endblock %}</main>
+
+<footer class="footer">
+  <p>🌍 Global Oil Supply Risk Prediction &nbsp;·&nbsp; Bagging &amp; Boosting ML &nbsp;·&nbsp; Flask &nbsp;·&nbsp; Worldwide Coverage 2025</p>
+</footer>
+
+{% if request.path == '/' %}
+<script src="{{ url_for('static', filename='js/leaflet-map.js') }}"></script>
+{% endif %}
+{% block scripts %}{% endblock %}
+</body>
+</html>

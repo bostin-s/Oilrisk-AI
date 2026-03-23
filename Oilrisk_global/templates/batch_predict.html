@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% block title %}Batch Predict — OilRisk AI Global{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>📋 Batch Prediction</h1>
+  <p class="subtitle">Submit multiple worldwide conflict events at once as a JSON array</p>
+</div>
+
+{% if not pipeline_done %}
+<div class="alert alert-warning">⚠️ Pipeline not run yet. <a href="/">Run the pipeline</a> first.</div>
+{% endif %}
+
+<div class="batch-layout">
+  <section class="card">
+    <h2>JSON Input</h2>
+    <p class="hint">Each object must include all required fields. The <code>_label</code> field is optional (display only).</p>
+    <textarea id="json-input" class="json-editor" rows="22">{{ sample_events }}</textarea>
+    <div class="btn-row mt-1">
+      <button class="btn btn-primary" onclick="runBatch()" {% if not pipeline_done %}disabled{% endif %}>▶ Run Batch Prediction</button>
+      <button class="btn btn-outline" onclick="resetInput()">↺ Reset to Samples</button>
+    </div>
+  </section>
+
+  <section class="card" id="batch-results" style="display:none">
+    <h2>Batch Results <span id="result-count" class="badge badge-primary"></span></h2>
+    <div id="batch-table-container"></div>
+    <canvas id="batchChart" height="180" class="mt-2"></canvas>
+  </section>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const ORIGINAL = {{ sample_events | tojson }};
+function resetInput() {
+  document.getElementById('json-input').value = JSON.stringify(JSON.parse(ORIGINAL), null, 2);
+}
+
+let batchChart = null;
+
+function runBatch() {
+  let events;
+  try { events = JSON.parse(document.getElementById('json-input').value); }
+  catch(e) { alert('Invalid JSON: ' + e.message); return; }
+  fetch('/batch-predict', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify(events)
+  })
+  .then(r => r.json())
+  .then(d => { if (d.error) { alert('Error: ' + d.error); return; } showBatchResults(d, events); });
+}
+
+const RISK_COLORS = { LOW:'#10b981', MEDIUM:'#f59e0b', HIGH:'#ef4444', CRITICAL:'#8b5cf6' };
+
+function showBatchResults(d, origEvents) {
+  document.getElementById('batch-results').style.display = 'block';
+  document.getElementById('result-count').textContent = d.count + ' events';
+  const rows = d.results;
+  let html = '<div class="table-scroll"><table class="results-table"><thead><tr>';
+  const cols      = ['event_type','target_description','oil_infrastructure_hit','casualties_min','casualties_max','predicted_risk'];
+  const colLabels = ['Event Type','Target','Oil Hit','Cas Min','Cas Max','Risk'];
+  colLabels.forEach(c => html += `<th>${c}</th>`);
+  html += '</tr></thead><tbody>';
+  rows.forEach((r, i) => {
+    html += '<tr>';
+    cols.forEach(c => {
+      if (c === 'predicted_risk') {
+        html += `<td><span class="risk-pill risk-${r[c].toLowerCase()}">${r[c]}</span></td>`;
+      } else {
+        html += `<td>${r[c] ?? ''}</td>`;
+      }
+    });
+    html += '</tr>';
+  });
+  html += '</tbody></table></div>';
+  document.getElementById('batch-table-container').innerHTML = html;
+
+  const dist = {};
+  rows.forEach(r => { dist[r.predicted_risk] = (dist[r.predicted_risk] || 0) + 1; });
+  const labels = Object.keys(dist);
+  const vals   = Object.values(dist);
+  if (batchChart) batchChart.destroy();
+  batchChart = new Chart(document.getElementById('batchChart'), {
+    type: 'doughnut',
+    data: {
+      labels,
+      datasets:[{
+        data: vals,
+        backgroundColor: labels.map(l => RISK_COLORS[l] || '#999'),
+        borderColor: '#fff', borderWidth: 3,
+        hoverOffset: 8,
+      }]
+    },
+    options: {
+      cutout: '55%',
+      plugins: {
+        legend: { labels: { color:'#334155', font:{ family:'DM Sans' } } },
+        title:  { display:true, text:'Risk Distribution', color:'#334155', font:{ family:'Syne', size:14 } }
+      }
+    }
+  });
+  document.getElementById('batch-results').scrollIntoView({behavior:'smooth'});
+}
+</script>
+{% endblock %}

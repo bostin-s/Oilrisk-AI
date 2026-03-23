@@ -1,0 +1,77 @@
+# ── Python ────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+.Python
+env/
+venv/
+.venv/
+ENV/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# ── Virtual environments ───────────────────────────────────────
+.env
+.venv
+venv/
+env/
+
+# ── Jupyter ────────────────────────────────────────────────────
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# ── Generated outputs (large files) ───────────────────────────
+outputs/*.png
+outputs/*.xlsx
+outputs/*.csv
+
+# ── Generated data (regenerated on first run) ─────────────────
+data/train_dataset.csv
+data/test_dataset.csv
+
+# Keep the main dataset in git (small enough)
+# data/Global_Oil_Risk_dataset.csv   <-- this stays
+
+# ── OS files ──────────────────────────────────────────────────
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
+# ── IDE / Editor ──────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.pydevproject
+
+# ── Flask / App ───────────────────────────────────────────────
+instance/
+.webassets-cache
+flask_session/
+
+# ── Testing ───────────────────────────────────────────────────
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# ── Secrets / API keys ────────────────────────────────────────
+.env
+.env.local
+*.pem
+*.key
+secrets.py
+config_local.py

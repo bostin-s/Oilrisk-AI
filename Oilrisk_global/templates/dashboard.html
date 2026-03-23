@@ -1,0 +1,287 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — OilRisk AI Global{% endblock %}
+
+{% block content %}
+
+<!-- Hero Banner -->
+<div class="hero-banner">
+  <div class="hero-content">
+    <div class="hero-title">🌍 Global Oil Supply Risk Intelligence</div>
+    <div class="hero-subtitle">
+      65 risk zones · 14 regions · All world oil-producing countries monitored
+    </div>
+  </div>
+  <div class="hero-badge">
+    <span class="live-dot-red"></span> LIVE ANALYSIS
+  </div>
+</div>
+
+<!-- Live ticker -->
+<div class="ticker-wrap">
+  <div class="ticker">
+    <span class="ticker-item t-crit"><span class="dot"></span>STRAIT OF HORMUZ — CRITICAL — 21 million bbl/day at risk</span>
+    <span class="ticker-item t-high"><span class="dot"></span>RED SEA / HOUTHIS — HIGH — Tanker missile strikes ongoing</span>
+    <span class="ticker-item t-crit"><span class="dot"></span>ISRAEL–IRAN — CRITICAL — Escalation at maximum level</span>
+    <span class="ticker-item t-high"><span class="dot"></span>UKRAINE PIPELINE — HIGH — Druzhba pipeline under attack risk</span>
+    <span class="ticker-item t-high"><span class="dot"></span>INDIAN OCEAN — HIGH — 80% of India crude imports disrupted</span>
+    <span class="ticker-item t-high"><span class="dot"></span>SOUTH CHINA SEA — HIGH — Taiwan blockade scenario HIGH</span>
+    <span class="ticker-item t-medium"><span class="dot"></span>NIGER DELTA — MEDIUM — Pipeline sabotage incidents</span>
+    <span class="ticker-item t-medium"><span class="dot"></span>VENEZUELA — MEDIUM — Sanction exposure & regime risk</span>
+    <span class="ticker-item t-medium"><span class="dot"></span>MOZAMBIQUE LNG — MEDIUM — Insurgency in Cabo Delgado</span>
+    <span class="ticker-item t-medium"><span class="dot"></span>COLOMBIA — MEDIUM — ELN guerrilla pipeline attacks</span>
+    <span class="ticker-item t-crit"><span class="dot"></span>STRAIT OF HORMUZ — CRITICAL — 21 million bbl/day at risk</span>
+    <span class="ticker-item t-high"><span class="dot"></span>RED SEA / HOUTHIS — HIGH — Tanker missile strikes ongoing</span>
+    <span class="ticker-item t-crit"><span class="dot"></span>ISRAEL–IRAN — CRITICAL — Escalation at maximum level</span>
+    <span class="ticker-item t-high"><span class="dot"></span>UKRAINE PIPELINE — HIGH — Druzhba pipeline under attack risk</span>
+    <span class="ticker-item t-high"><span class="dot"></span>INDIAN OCEAN — HIGH — 80% of India crude imports disrupted</span>
+    <span class="ticker-item t-high"><span class="dot"></span>SOUTH CHINA SEA — HIGH — Taiwan blockade scenario HIGH</span>
+    <span class="ticker-item t-medium"><span class="dot"></span>NIGER DELTA — MEDIUM — Pipeline sabotage incidents</span>
+    <span class="ticker-item t-medium"><span class="dot"></span>VENEZUELA — MEDIUM — Sanction exposure & regime risk</span>
+  </div>
+</div>
+
+<!-- ═══════════════════════════ MAP SECTION ═══════════════════════════ -->
+<div class="map-section">
+
+  <!-- MAP HEADER — fixed alignment -->
+  <div class="map-header">
+    <div class="map-header-left">
+      <div class="map-title">
+        <span class="live-dot-red"></span>
+        Live Global Risk Map
+        <span class="map-count-badge" id="zone-count-badge">65 Active Zones</span>
+      </div>
+      <div class="map-subtitle">
+        Click marker for details &nbsp;·&nbsp; Scroll to zoom &nbsp;·&nbsp; Drag to pan &nbsp;·&nbsp; 🛰️ Free satellite — no API key
+      </div>
+    </div>
+    <div class="map-header-right">
+      <div class="map-filters">
+        <span class="filter-label">Risk:</span>
+        <button class="map-filter-btn active" data-risk-filter="">All</button>
+        <button class="map-filter-btn crit"   data-risk-filter="CRITICAL">CRITICAL</button>
+        <button class="map-filter-btn high"   data-risk-filter="HIGH">HIGH</button>
+        <button class="map-filter-btn med"    data-risk-filter="MEDIUM">MEDIUM</button>
+        <button class="map-filter-btn low"    data-risk-filter="LOW">LOW</button>
+      </div>
+      <div class="map-layer-btns">
+        <button id="toggle-circles" class="map-layer-btn active" title="Toggle risk zones">⬤ Zones</button>
+        <button id="toggle-arcs"    class="map-layer-btn active" title="Toggle threat arcs">↝ Arcs</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- REGION JUMP BAR — built dynamically by JS -->
+  <div class="region-jump-bar">
+    <span class="jump-label">Jump:</span>
+    <div id="region-jump-bar-inner" class="jump-btn-row"></div>
+  </div>
+
+  <!-- MAP BODY: map canvas + side panel -->
+  <div class="map-body">
+
+    <!-- LEFT: Leaflet map -->
+    <div id="leaflet-map" class="leaflet-map-el"></div>
+
+    <!-- RIGHT: Side panel — fixed width, no overflow -->
+    <div class="map-side-panel">
+
+      <!-- Risk Detail -->
+      <div class="side-panel-header">📍 Risk Detail</div>
+      <div id="hotspot-detail-panel" class="detail-panel">
+        <div class="detail-placeholder">
+          <div class="detail-placeholder-icon">🛰️</div>
+          <div class="detail-placeholder-text">Click any marker on the satellite map to see risk details and live place photo</div>
+        </div>
+      </div>
+
+      <!-- Live Events -->
+      <div class="side-panel-header" style="margin-top:.9rem;">⚡ Recent Events</div>
+      <div class="live-events-list">
+        <div class="live-event-item">
+          <span class="event-dot" style="background:#8b5cf6;"></span>
+          <div class="event-info"><div class="event-name">Hormuz — Naval Alert</div><div class="event-time">2 min ago</div></div>
+          <span class="risk-pill risk-critical" style="font-size:.65rem;padding:.1rem .4rem;">CRITICAL</span>
+        </div>
+        <div class="live-event-item">
+          <span class="event-dot" style="background:#ef4444;"></span>
+          <div class="event-info"><div class="event-name">Red Sea Tanker Strike</div><div class="event-time">8 min ago</div></div>
+          <span class="risk-pill risk-high" style="font-size:.65rem;padding:.1rem .4rem;">HIGH</span>
+        </div>
+        <div class="live-event-item">
+          <span class="event-dot" style="background:#ef4444;"></span>
+          <div class="event-info"><div class="event-name">Indian Ocean Alert</div><div class="event-time">14 min ago</div></div>
+          <span class="risk-pill risk-high" style="font-size:.65rem;padding:.1rem .4rem;">HIGH</span>
+        </div>
+        <div class="live-event-item">
+          <span class="event-dot" style="background:#ef4444;"></span>
+          <div class="event-info"><div class="event-name">Druzhba Pipeline Risk</div><div class="event-time">25 min ago</div></div>
+          <span class="risk-pill risk-high" style="font-size:.65rem;padding:.1rem .4rem;">HIGH</span>
+        </div>
+        <div class="live-event-item">
+          <span class="event-dot" style="background:#ef4444;"></span>
+          <div class="event-info"><div class="event-name">Taiwan Strait Tension</div><div class="event-time">41 min ago</div></div>
+          <span class="risk-pill risk-high" style="font-size:.65rem;padding:.1rem .4rem;">HIGH</span>
+        </div>
+        <div class="live-event-item">
+          <span class="event-dot" style="background:#f59e0b;"></span>
+          <div class="event-info"><div class="event-name">Niger Delta Sabotage</div><div class="event-time">1 hr ago</div></div>
+          <span class="risk-pill risk-medium" style="font-size:.65rem;padding:.1rem .4rem;">MEDIUM</span>
+        </div>
+        <div class="live-event-item">
+          <span class="event-dot" style="background:#f59e0b;"></span>
+          <div class="event-info"><div class="event-name">Mozambique Insurgency</div><div class="event-time">2 hr ago</div></div>
+          <span class="risk-pill risk-medium" style="font-size:.65rem;padding:.1rem .4rem;">MEDIUM</span>
+        </div>
+      </div>
+
+      <!-- Top Zones -->
+      <div class="side-panel-header" style="margin-top:.9rem;">🔥 Critical Zones</div>
+      <div class="region-mini-list">
+        <div class="region-mini risk-critical"><span>⚓</span><span>Strait of Hormuz</span><span class="risk-pill risk-critical" style="font-size:.6rem;padding:.08rem .38rem;">CRITICAL</span></div>
+        <div class="region-mini risk-critical"><span>🇮🇱</span><span>Israel–Iran</span><span class="risk-pill risk-critical" style="font-size:.6rem;padding:.08rem .38rem;">CRITICAL</span></div>
+        <div class="region-mini risk-high"><span>🔴</span><span>Red Sea</span><span class="risk-pill risk-high" style="font-size:.6rem;padding:.08rem .38rem;">HIGH</span></div>
+        <div class="region-mini risk-high"><span>🇺🇦</span><span>Ukraine</span><span class="risk-pill risk-high" style="font-size:.6rem;padding:.08rem .38rem;">HIGH</span></div>
+        <div class="region-mini risk-high"><span>🌊</span><span>Indian Ocean</span><span class="risk-pill risk-high" style="font-size:.6rem;padding:.08rem .38rem;">HIGH</span></div>
+        <div class="region-mini risk-high"><span>🇹🇼</span><span>Taiwan Strait</span><span class="risk-pill risk-high" style="font-size:.6rem;padding:.08rem .38rem;">HIGH</span></div>
+        <div class="region-mini risk-high"><span>🌊</span><span>S.China Sea</span><span class="risk-pill risk-high" style="font-size:.6rem;padding:.08rem .38rem;">HIGH</span></div>
+        <div class="region-mini risk-medium"><span>🇮🇳</span><span>Jamnagar</span><span class="risk-pill risk-medium" style="font-size:.6rem;padding:.08rem .38rem;">MEDIUM</span></div>
+      </div>
+
+    </div><!-- /map-side-panel -->
+  </div><!-- /map-body -->
+
+  <!-- MAP FOOTER STATS -->
+  <div class="map-footer">
+    <div class="map-stat"><span class="map-stat-val" style="color:#8b5cf6;">5</span><span class="map-stat-lbl">CRITICAL</span></div>
+    <div class="map-stat-div"></div>
+    <div class="map-stat"><span class="map-stat-val" style="color:#ef4444;">22</span><span class="map-stat-lbl">HIGH</span></div>
+    <div class="map-stat-div"></div>
+    <div class="map-stat"><span class="map-stat-val" style="color:#f59e0b;">22</span><span class="map-stat-lbl">MEDIUM</span></div>
+    <div class="map-stat-div"></div>
+    <div class="map-stat"><span class="map-stat-val" style="color:#10b981;">16</span><span class="map-stat-lbl">LOW</span></div>
+    <div class="map-stat-div"></div>
+    <div class="map-stat"><span class="map-stat-val" style="color:#1a56e8;">65</span><span class="map-stat-lbl">TOTAL ZONES</span></div>
+    <div class="map-stat-div"></div>
+    <div class="map-stat"><span class="map-stat-val" style="color:#64748b;">14</span><span class="map-stat-lbl">REGIONS</span></div>
+    <div class="map-stat-div"></div>
+    <div class="map-stat"><span class="map-stat-val" style="color:#64748b;">40+</span><span class="map-stat-lbl">COUNTRIES</span></div>
+    <div style="margin-left:auto;font-size:.72rem;color:#94a3b8;display:flex;align-items:center;gap:.35rem;">
+      <span class="live-dot"></span>Esri Satellite · Wikipedia Photos · Free
+    </div>
+  </div>
+
+</div><!-- /map-section -->
+
+<!-- Pipeline Control -->
+<section class="card pipeline-card" style="margin-top:1.5rem;">
+  <div class="card-header">
+    <h2><span class="icon">⚙️</span> ML Pipeline Control</h2>
+    {% if not pipeline_done and not pipeline_running %}
+    <button id="run-btn" class="btn btn-primary" onclick="startPipeline()">▶ Run Full Pipeline</button>
+    {% elif pipeline_running %}
+    <button class="btn btn-disabled" disabled>⟳ Pipeline Running…</button>
+    {% else %}
+    <button id="run-btn" class="btn btn-outline" onclick="startPipeline()">↺ Retrain Pipeline</button>
+    {% endif %}
+  </div>
+  <div id="log-container" class="log-box" style="display:{% if pipeline_running %}block{% else %}none{% endif %}">
+    <div id="log-output"></div>
+  </div>
+  {% if pipeline_done %}
+  <div class="pipeline-success">✅ Pipeline complete — all 6 models trained on global dataset</div>
+  {% endif %}
+</section>
+
+<!-- Stats Grid -->
+{% if dataset_stats %}
+<section class="stats-grid">
+  <div class="stat-card"><div class="stat-value">{{ dataset_stats.total_events|default(0) }}</div><div class="stat-label">Total Events</div></div>
+  <div class="stat-card"><div class="stat-value">{{ dataset_stats.locations|default(0) }}</div><div class="stat-label">Locations</div></div>
+  <div class="stat-card"><div class="stat-value">{{ dataset_stats.regions|default(0) }}</div><div class="stat-label">Regions</div></div>
+  <div class="stat-card"><div class="stat-value">{{ dataset_stats.oil_hit_rate|default(0) }}%</div><div class="stat-label">Oil Infrastructure Hit</div></div>
+  <div class="stat-card"><div class="stat-value">{{ dataset_stats.avg_casualties|default(0) }}</div><div class="stat-label">Avg Casualties</div></div>
+  <div class="stat-card stat-card-wide">
+    <div class="stat-label mb-1">Risk Distribution</div>
+    <div class="risk-pills">
+      {% for risk, count in dataset_stats.risk_dist.items() %}
+      <span class="risk-pill risk-{{ risk|lower }}">{{ risk }}: {{ count }}</span>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<section class="charts-row">
+  <div class="card chart-card"><h2>Risk Level Distribution</h2><canvas id="riskChart" height="220"></canvas></div>
+  <div class="card chart-card"><h2>Event Type Breakdown</h2><canvas id="eventChart" height="220"></canvas></div>
+</section>
+<section class="charts-row">
+  <div class="card chart-card"><h2>Region Risk Heatmap</h2><canvas id="regionChart" height="220"></canvas></div>
+  <div class="card chart-card"><h2>Oil Infrastructure Targets</h2><canvas id="oilHitChart" height="220"></canvas></div>
+</section>
+{% endif %}
+
+{% if results %}
+<section class="card">
+  <h2><span class="icon">📊</span> Model Performance (Test Set)</h2>
+  <p class="best-model-label">🏆 Best model: <strong>{{ best_model_name }}</strong></p>
+  <table class="results-table">
+    <thead><tr><th>#</th><th>Model</th><th>Test Accuracy</th><th>Score Bar</th></tr></thead>
+    <tbody>
+      {% for row in results %}
+      <tr class="{% if loop.first %}best-row{% endif %}">
+        <td>{{ loop.index }}</td>
+        <td>{{ row.Model }}{% if loop.first %} 🏆{% endif %}</td>
+        <td><strong>{{ "%.4f"|format(row.Accuracy) }}</strong></td>
+        <td><div class="score-bar-bg"><div class="score-bar" style="width:{{ (row.Accuracy*100)|round(1) }}%"></div></div></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+function startPipeline() {
+  const btn = document.getElementById('run-btn');
+  btn.disabled = true; btn.textContent = '⟳ Starting…';
+  document.getElementById('log-container').style.display = 'block';
+  fetch('/run-pipeline', {method:'POST'}).then(r=>r.json()).then(d=>{
+    if (d.status==='already_running') return;
+    const out = document.getElementById('log-output');
+    const src = new EventSource('/pipeline-log');
+    src.onmessage = e => {
+      const m = JSON.parse(e.data);
+      if (m.done) { src.close(); setTimeout(()=>location.reload(),1500); return; }
+      if (m.log) {
+        const cls = m.log.includes('❌')?'err':m.log.includes('▶')?'warn':'';
+        out.innerHTML += `<div class="log-line ${cls}">${m.log.replace(/&/g,'&amp;').replace(/</g,'&lt;')}</div>`;
+        out.scrollTop = out.scrollHeight;
+      }
+    };
+  });
+}
+
+document.querySelectorAll('[data-risk-filter]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('[data-risk-filter]').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+  });
+});
+
+{% if dataset_stats %}
+const riskData   = {{ dataset_stats.risk_dist   | tojson }};
+const eventData  = {{ dataset_stats.event_types | tojson }};
+const regionData = {{ dataset_stats.region_dist | tojson }};
+const oilHitData = {{ dataset_stats.oil_targets | tojson }};
+const RC = { LOW:'#10b981', MEDIUM:'#f59e0b', HIGH:'#ef4444', CRITICAL:'#8b5cf6' };
+new Chart(document.getElementById('riskChart'),{type:'doughnut',data:{labels:Object.keys(riskData),datasets:[{data:Object.values(riskData),backgroundColor:Object.keys(riskData).map(k=>RC[k]||'#999'),borderWidth:3,borderColor:'#fff',hoverOffset:8}]},options:{cutout:'62%',plugins:{legend:{labels:{color:'#334155',font:{family:'DM Sans',size:12}}}}}});
+new Chart(document.getElementById('eventChart'),{type:'bar',data:{labels:Object.keys(eventData),datasets:[{label:'Events',data:Object.values(eventData),backgroundColor:'rgba(26,86,232,.55)',borderColor:'rgba(26,86,232,1)',borderWidth:1.5,borderRadius:4}]},options:{indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#64748b'},grid:{color:'rgba(0,0,0,.04)'}},y:{ticks:{color:'#334155',font:{size:10}}}}}});
+new Chart(document.getElementById('regionChart'),{type:'bar',data:{labels:Object.keys(regionData),datasets:[{label:'Events',data:Object.values(regionData),backgroundColor:['rgba(249,115,22,.7)','rgba(239,68,68,.7)','rgba(139,92,246,.7)','rgba(16,185,129,.7)','rgba(59,130,246,.7)','rgba(245,158,11,.7)','rgba(236,72,153,.7)','rgba(20,184,166,.7)'],borderRadius:6}]},options:{plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#334155',font:{size:10}}},y:{ticks:{color:'#64748b'}}}}});
+new Chart(document.getElementById('oilHitChart'),{type:'polarArea',data:{labels:Object.keys(oilHitData),datasets:[{data:Object.values(oilHitData),backgroundColor:['rgba(249,115,22,.6)','rgba(239,68,68,.6)','rgba(139,92,246,.6)','rgba(26,86,232,.6)','rgba(245,158,11,.6)','rgba(16,185,129,.6)'],borderWidth:2,borderColor:'#fff'}]},options:{plugins:{legend:{labels:{color:'#334155',font:{size:10}}}},scales:{r:{ticks:{color:'#64748b'}}}}});
+{% endif %}
+</script>
+{% endblock %}

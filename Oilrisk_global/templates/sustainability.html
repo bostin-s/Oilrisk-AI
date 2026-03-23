@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% block title %}Sustainability — OilRisk AI Global{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>⛽ Global Oil Stock Sustainability Calculator</h1>
+  <p class="subtitle">How long can oil reserves last under different worldwide conflict disruption scenarios?</p>
+</div>
+
+<section class="card">
+  <div class="formula-box">
+    <strong>Formula:</strong>&nbsp;
+    <code>Days Sustainable = Total Stock (BBL) / Effective Daily Supply</code>
+    &nbsp;&nbsp;where&nbsp;&nbsp;
+    <code>Effective Supply = Daily Consumption × (1 − Disruption%/100)</code>
+  </div>
+  <div id="sustain-table-container">Loading…</div>
+  <canvas id="sustainChart" height="200" class="mt-2"></canvas>
+</section>
+
+<section class="card mt-2">
+  <h2>Custom Scenario Calculator</h2>
+  <div class="form-grid">
+    <div class="form-group">
+      <label>Total Stock (BBL)</label>
+      <input type="number" id="c-stock" value="400000000" />
+    </div>
+    <div class="form-group">
+      <label>Daily Consumption (BBL)</label>
+      <input type="number" id="c-daily" value="20000000" />
+    </div>
+    <div class="form-group">
+      <label>Disruption % (0–100)</label>
+      <input type="number" id="c-disrupt" value="30" min="0" max="100" />
+    </div>
+  </div>
+  <button class="btn btn-primary" onclick="calcCustom()">Calculate</button>
+  <div id="custom-result" class="custom-result-box" style="display:none"></div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let sustainChart = null;
+const RISK_COLORS = ['#10b981','#f59e0b','#e67e22','#ef4444','#8b5cf6'];
+
+fetch('/api/sustainability')
+  .then(r => r.json())
+  .then(data => {
+    let html = '<table class="results-table"><thead><tr><th>Scenario</th><th>Disruption %</th><th>Effective Supply/Day</th><th>Days Sustainable</th></tr></thead><tbody>';
+    data.forEach((row, i) => {
+      const rClass = i === 0 ? '' : i === 1 ? 'risk-low' : i === 2 ? 'risk-medium' : i === 3 ? 'risk-high' : 'risk-critical';
+      html += `<tr>
+        <td>${row.scenario}</td>
+        <td><span class="risk-pill ${rClass}">${row.disruption_pct}%</span></td>
+        <td>${row.effective_supply.toLocaleString()} BBL</td>
+        <td><strong>${row.days_sustainable}</strong> days</td>
+      </tr>`;
+    });
+    html += '</tbody></table>';
+    document.getElementById('sustain-table-container').innerHTML = html;
+
+    if (sustainChart) sustainChart.destroy();
+    sustainChart = new Chart(document.getElementById('sustainChart'), {
+      type: 'bar',
+      data: {
+        labels: data.map(d => d.scenario.replace(' disruption','')),
+        datasets: [{
+          label: 'Days Sustainable',
+          data: data.map(d => d.days_sustainable),
+          backgroundColor: RISK_COLORS.map(c => c + 'bb'),
+          borderColor: RISK_COLORS, borderWidth: 2,
+          borderRadius: 8,
+        }]
+      },
+      options: {
+        plugins: {
+          legend: { display:false },
+          title:  { display:true, text:'Oil Stock Sustainability by Disruption Scenario', color:'#334155', font:{ family:'Syne', size:14 } }
+        },
+        scales: {
+          x: { ticks:{ color:'#334155' } },
+          y: { ticks:{ color:'#64748b' }, title:{ display:true, text:'Days', color:'#64748b' } }
+        }
+      }
+    });
+  });
+
+function calcCustom() {
+  const stock   = parseFloat(document.getElementById('c-stock').value);
+  const daily   = parseFloat(document.getElementById('c-daily').value);
+  const disrupt = parseFloat(document.getElementById('c-disrupt').value);
+  const eff     = daily * (1 - disrupt / 100);
+  const days    = eff > 0 ? (stock / eff).toFixed(1) : 'Infinite';
+  const box = document.getElementById('custom-result');
+  box.style.display = 'block';
+  box.innerHTML = `
+    <div class="custom-result-row"><span>Effective Daily Supply:</span> <strong>${Math.round(eff).toLocaleString()} BBL/day</strong></div>
+    <div class="custom-result-row"><span>Disruption Level:</span> <strong>${disrupt}%</strong></div>
+    <div class="custom-result-row"><span>Days Sustainable:</span> <span class="big-days">${days} days</span></div>
+  `;
+}
+</script>
+{% endblock %}

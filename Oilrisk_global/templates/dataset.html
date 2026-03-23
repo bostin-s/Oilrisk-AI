@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}Dataset — OilRisk AI Global{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>🗃️ Dataset Explorer</h1>
+  <p class="subtitle">Browse 5,000 synthetic global conflict events &nbsp;·&nbsp; Total: {{ total }} rows</p>
+</div>
+
+<section class="card">
+  <form method="GET" action="/dataset" class="filter-bar">
+    <input type="text"  name="q"      placeholder="Search any column…"  value="{{ search }}"      class="search-input" />
+    <select name="risk" class="risk-select">
+      <option value="">All Risk Levels</option>
+      {% for r in ['LOW','MEDIUM','HIGH','CRITICAL'] %}
+      <option value="{{ r }}" {% if risk_filter==r %}selected{% endif %}>{{ r }}</option>
+      {% endfor %}
+    </select>
+    <select name="region" class="region-select">
+      <option value="">All Regions</option>
+      {% for r in ['Middle East','Red Sea','Europe','Africa','Americas','Asia-Pacific','Caucasus'] %}
+      <option value="{{ r }}" {% if region_filter==r %}selected{% endif %}>{{ r }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit" class="btn btn-primary btn-sm">Search</button>
+    <a href="/dataset" class="btn btn-outline btn-sm">Clear</a>
+  </form>
+
+  {% if columns %}
+  <div class="table-scroll">
+    <table class="data-table">
+      <thead><tr>{% for c in columns %}<th>{{ c }}</th>{% endfor %}</tr></thead>
+      <tbody>
+        {% for row in rows %}
+        <tr>
+          {% for j in range(columns|length) %}
+            {% if columns[j] == 'oil_supply_risk' %}
+              <td><span class="risk-pill risk-{{ row[j]|lower }}">{{ row[j] }}</span></td>
+            {% else %}
+              <td>{{ row[j] }}</td>
+            {% endif %}
+          {% endfor %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="pagination">
+    {% if page > 1 %}<a href="/dataset?page={{ page-1 }}&q={{ search }}&risk={{ risk_filter }}&region={{ region_filter }}" class="btn btn-outline btn-sm">‹ Prev</a>{% endif %}
+    <span class="page-info">Page {{ page }} / {{ total_pages }}</span>
+    {% if page < total_pages %}<a href="/dataset?page={{ page+1 }}&q={{ search }}&risk={{ risk_filter }}&region={{ region_filter }}" class="btn btn-outline btn-sm">Next ›</a>{% endif %}
+  </div>
+  {% else %}
+  <div class="chart-placeholder">No dataset found — run the pipeline from the <a href="/">Dashboard</a></div>
+  {% endif %}
+</section>
+{% endblock %}

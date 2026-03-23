@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Charts — OilRisk AI Global{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>📈 Visualization Gallery</h1>
+  <p class="subtitle">EDA charts, feature importance, and model evaluation plots — Global dataset</p>
+</div>
+
+{% if not pipeline_done %}
+<div class="alert alert-warning">⚠️ Run the pipeline first to generate charts. <a href="/">Go to Dashboard</a></div>
+{% endif %}
+
+{% for name, img in charts.items() %}
+<section class="card chart-section">
+  <h2>{{ name }}</h2>
+  {% if img %}
+    <img src="{{ img }}" alt="{{ name }}" class="chart-img" />
+  {% else %}
+    <div class="chart-placeholder">📊 Chart not yet generated — run the pipeline first</div>
+  {% endif %}
+</section>
+{% endfor %}
+{% endblock %}

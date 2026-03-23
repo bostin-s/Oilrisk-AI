@@ -1,0 +1,217 @@
+{% extends "base.html" %}
+{% block title %}Predict — OilRisk AI Global{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>🎯 Real-Time Global Risk Prediction</h1>
+  <p class="subtitle">Enter conflict event details to predict oil supply disruption risk — worldwide coverage</p>
+</div>
+
+{% if not pipeline_done %}
+<div class="alert alert-warning">
+  ⚠️ Pipeline has not been run yet. <a href="/">Go to Dashboard</a> and run the pipeline first.
+</div>
+{% endif %}
+
+<div class="predict-layout">
+  <!-- Form -->
+  <section class="card predict-form-card">
+    <h2>Event Parameters</h2>
+
+    <!-- Quick Fill Buttons -->
+    <div class="quick-fill-row">
+      <span class="label-small">Quick fill:</span>
+      <button class="btn btn-sm btn-accent"   onclick="fillSample('critical')">🟣 CRITICAL — Hormuz</button>
+      <button class="btn btn-sm btn-outline"  onclick="fillSample('redsea')" >🔴 HIGH — Red Sea</button>
+      <button class="btn btn-sm btn-outline"  onclick="fillSample('ukraine')">🟡 HIGH — Ukraine</button>
+      <button class="btn btn-sm btn-outline"  onclick="fillSample('low')"    >🟢 LOW Event</button>
+    </div>
+
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Attacker</label>
+        <select id="actor_attacker">
+          {% for a in actors_attacker %}<option>{{ a }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Target Actor</label>
+        <select id="actor_target">
+          {% for a in actors_target %}<option>{{ a }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Event Type</label>
+        <select id="event_type">
+          {% for e in event_types %}<option>{{ e }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Target Description</label>
+        <select id="target_description">
+          {% for t in target_descs %}<option>{{ t }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Casualty Confidence</label>
+        <select id="casualty_confidence">
+          <option>High</option><option>Medium</option><option>Low</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Oil Infrastructure Hit</label>
+        <select id="oil_infrastructure_hit">
+          <option value="1">Yes (1)</option><option value="0">No (0)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Latitude</label>
+        <input type="number" id="latitude" step="0.0001" value="26.57" />
+      </div>
+      <div class="form-group">
+        <label>Longitude</label>
+        <input type="number" id="longitude" step="0.0001" value="56.25" />
+      </div>
+      <div class="form-group">
+        <label>Casualties (Min)</label>
+        <input type="number" id="casualties_min" value="20" min="0" />
+      </div>
+      <div class="form-group">
+        <label>Casualties (Max)</label>
+        <input type="number" id="casualties_max" value="35" min="0" />
+      </div>
+      <div class="form-group">
+        <label>Month</label>
+        <input type="number" id="month" value="4" min="1" max="12" />
+      </div>
+      <div class="form-group">
+        <label>Day</label>
+        <input type="number" id="day" value="15" min="1" max="31" />
+      </div>
+    </div>
+
+    <button class="btn btn-primary btn-full" onclick="runPrediction()" {% if not pipeline_done %}disabled{% endif %}>
+      ▶ Predict Risk Level
+    </button>
+  </section>
+
+  <!-- Result Panel -->
+  <section class="card result-card" id="result-panel" style="display:none">
+    <h2>Prediction Result</h2>
+    <div class="risk-badge-large" id="risk-badge">—</div>
+    <div class="model-tag" id="model-tag"></div>
+    <h3 class="mt-2">Class Probabilities</h3>
+    <canvas id="probaChart" height="200"></canvas>
+    <div id="proba-table" class="proba-table mt-1"></div>
+  </section>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let probaChart = null;
+
+const SAMPLES = {
+  critical: {
+    actor_attacker:'IRGC', actor_target:'US_Base', event_type:'Drone_Attack',
+    target_description:'Pipeline', casualty_confidence:'High',
+    latitude:26.57, longitude:56.25, oil_infrastructure_hit:1,
+    casualties_min:20, casualties_max:35, month:10, day:7
+  },
+  redsea: {
+    actor_attacker:'Houthis', actor_target:'International_Shipping', event_type:'Missile_Strike',
+    target_description:'Oil_Tanker', casualty_confidence:'High',
+    latitude:12.58, longitude:43.42, oil_infrastructure_hit:1,
+    casualties_min:10, casualties_max:20, month:1, day:12
+  },
+  ukraine: {
+    actor_attacker:'Russia', actor_target:'Ukraine', event_type:'Missile_Strike',
+    target_description:'Pipeline', casualty_confidence:'Medium',
+    latitude:49.99, longitude:36.23, oil_infrastructure_hit:1,
+    casualties_min:5, casualties_max:15, month:6, day:22
+  },
+  low: {
+    actor_attacker:'IDF', actor_target:'Iran', event_type:'Cyber_Attack',
+    target_description:'Power_Plant', casualty_confidence:'Low',
+    latitude:33.72, longitude:51.93, oil_infrastructure_hit:0,
+    casualties_min:0, casualties_max:2, month:3, day:12
+  }
+};
+
+function fillSample(type) {
+  const s = SAMPLES[type];
+  for (const [k, v] of Object.entries(s)) {
+    const el = document.getElementById(k);
+    if (el) el.value = v;
+  }
+}
+
+function runPrediction() {
+  const payload = {
+    actor_attacker:        document.getElementById('actor_attacker').value,
+    actor_target:          document.getElementById('actor_target').value,
+    event_type:            document.getElementById('event_type').value,
+    target_description:    document.getElementById('target_description').value,
+    casualty_confidence:   document.getElementById('casualty_confidence').value,
+    oil_infrastructure_hit: parseInt(document.getElementById('oil_infrastructure_hit').value),
+    latitude:              parseFloat(document.getElementById('latitude').value),
+    longitude:             parseFloat(document.getElementById('longitude').value),
+    casualties_min:        parseFloat(document.getElementById('casualties_min').value),
+    casualties_max:        parseFloat(document.getElementById('casualties_max').value),
+    month:                 parseInt(document.getElementById('month').value),
+    day:                   parseInt(document.getElementById('day').value),
+  };
+  fetch('/predict', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify(payload)
+  })
+  .then(r => r.json())
+  .then(d => { if (d.error) { alert('Error: ' + d.error); return; } showResult(d); })
+  .catch(err => alert('Request failed: ' + err));
+}
+
+const RISK_COLORS = { LOW:'#10b981', MEDIUM:'#f59e0b', HIGH:'#ef4444', CRITICAL:'#8b5cf6' };
+
+function showResult(d) {
+  const panel = document.getElementById('result-panel');
+  panel.style.display = 'block';
+  const badge = document.getElementById('risk-badge');
+  badge.textContent = d.risk;
+  badge.className = 'risk-badge-large risk-' + d.risk.toLowerCase();
+  document.getElementById('model-tag').textContent = 'Model: ' + d.model_used;
+
+  const labels = Object.keys(d.probabilities);
+  const vals   = Object.values(d.probabilities);
+  const colors = labels.map(l => RISK_COLORS[l] || '#999');
+
+  if (probaChart) probaChart.destroy();
+  probaChart = new Chart(document.getElementById('probaChart'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets:[{
+        label:'Probability', data: vals,
+        backgroundColor: colors.map(c => c + 'bb'),
+        borderColor: colors, borderWidth: 2,
+        borderRadius: 6,
+      }]
+    },
+    options:{
+      plugins:{ legend:{ display:false } },
+      scales:{
+        x:{ ticks:{ color:'#334155' } },
+        y:{ min:0, max:1, ticks:{ color:'#64748b' } }
+      }
+    }
+  });
+
+  let html = '<table class="results-table"><thead><tr><th>Risk Level</th><th>Probability</th></tr></thead><tbody>';
+  for (const [k,v] of Object.entries(d.probabilities)) {
+    html += `<tr><td><span class="risk-pill risk-${k.toLowerCase()}">${k}</span></td><td><strong>${(v*100).toFixed(2)}%</strong></td></tr>`;
+  }
+  html += '</tbody></table>';
+  document.getElementById('proba-table').innerHTML = html;
+  panel.scrollIntoView({behavior:'smooth'});
+}
+</script>
+{% endblock %}
