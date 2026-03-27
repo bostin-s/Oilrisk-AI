@@ -1,5 +1,5 @@
 /* ============================================================
-   OilRisk AI — Global Oil Supply Risk Platform
+   OilRisk — Global Oil Supply Risk Platform
    Modern Light Glassmorphism Theme — 2025
    Google Fonts: Syne (display) + DM Sans (body)
    ============================================================ */
@@ -1379,3 +1379,8 @@ body {
   gap: 4px;
 }
 .or-pop-loading span { font-size: 1.6rem; }
+
+@keyframes fadeInDown {
+  from { opacity:0; transform:translateY(-10px); }
+  to   { opacity:1; transform:translateY(0); }
+}

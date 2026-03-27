@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Dashboard — OilRisk AI Global{% endblock %}
+{% block title %}Dashboard — OilRisk Global{% endblock %}
 
 {% block content %}
 
@@ -173,25 +173,7 @@
 
 </div><!-- /map-section -->
 
-<!-- Pipeline Control -->
-<section class="card pipeline-card" style="margin-top:1.5rem;">
-  <div class="card-header">
-    <h2><span class="icon">⚙️</span> ML Pipeline Control</h2>
-    {% if not pipeline_done and not pipeline_running %}
-    <button id="run-btn" class="btn btn-primary" onclick="startPipeline()">▶ Run Full Pipeline</button>
-    {% elif pipeline_running %}
-    <button class="btn btn-disabled" disabled>⟳ Pipeline Running…</button>
-    {% else %}
-    <button id="run-btn" class="btn btn-outline" onclick="startPipeline()">↺ Retrain Pipeline</button>
-    {% endif %}
-  </div>
-  <div id="log-container" class="log-box" style="display:{% if pipeline_running %}block{% else %}none{% endif %}">
-    <div id="log-output"></div>
-  </div>
-  {% if pipeline_done %}
-  <div class="pipeline-success">✅ Pipeline complete — all 6 models trained on global dataset</div>
-  {% endif %}
-</section>
+
 
 <!-- Stats Grid -->
 {% if dataset_stats %}
@@ -245,26 +227,6 @@
 
 {% block scripts %}
 <script>
-function startPipeline() {
-  const btn = document.getElementById('run-btn');
-  btn.disabled = true; btn.textContent = '⟳ Starting…';
-  document.getElementById('log-container').style.display = 'block';
-  fetch('/run-pipeline', {method:'POST'}).then(r=>r.json()).then(d=>{
-    if (d.status==='already_running') return;
-    const out = document.getElementById('log-output');
-    const src = new EventSource('/pipeline-log');
-    src.onmessage = e => {
-      const m = JSON.parse(e.data);
-      if (m.done) { src.close(); setTimeout(()=>location.reload(),1500); return; }
-      if (m.log) {
-        const cls = m.log.includes('❌')?'err':m.log.includes('▶')?'warn':'';
-        out.innerHTML += `<div class="log-line ${cls}">${m.log.replace(/&/g,'&amp;').replace(/</g,'&lt;')}</div>`;
-        out.scrollTop = out.scrollHeight;
-      }
-    };
-  });
-}
-
 document.querySelectorAll('[data-risk-filter]').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('[data-risk-filter]').forEach(b=>b.classList.remove('active'));

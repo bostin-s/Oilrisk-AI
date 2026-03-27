@@ -1,4 +1,4 @@
-# OilRisk AI — Global Oil Supply Risk Prediction
+# OilRisk — Global Oil Supply Risk Prediction
 ## Worldwide Conflict-Zone Oil Disruption Intelligence Platform
 
 A full-stack Flask web application using **Bagging & Boosting ML models** to predict

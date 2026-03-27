@@ -34,7 +34,7 @@ MODELS_CONFIG = [
     {
         "name": "Decision Tree",
         "model_class": DecisionTreeClassifier,
-        "default_params": {"random_state": 42},
+        "default_params": {"random_state": 42, "class_weight": "balanced"},
         "grid_params": {
             "max_depth": [None, 10, 20, 30],
             "min_samples_split": [2, 5, 10],
@@ -43,7 +43,7 @@ MODELS_CONFIG = [
     {
         "name": "Random Forest",
         "model_class": RandomForestClassifier,
-        "default_params": {"n_estimators": 100, "random_state": 42},
+        "default_params": {"n_estimators": 100, "random_state": 42, "class_weight": "balanced"},
         "grid_params": {
             "n_estimators": [50, 100, 200],
             "max_depth": [5, 10, None],

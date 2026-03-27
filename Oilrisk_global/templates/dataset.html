@@ -24,20 +24,99 @@
     </select>
     <button type="submit" class="btn btn-primary btn-sm">Search</button>
     <a href="/dataset" class="btn btn-outline btn-sm">Clear</a>
+    {% if columns %}
+    <button type="button" class="btn btn-outline btn-sm" onclick="toggleColPanel()" id="col-toggle-btn">
+      ⚙ Columns
+    </button>
+    {% endif %}
   </form>
 
   {% if columns %}
+  <!-- Column visibility panel -->
+  <div id="col-panel" style="display:none; margin-bottom:1rem;">
+    <div style="
+      background: rgba(255,255,255,0.95);
+      border: 1.5px solid var(--border-strong);
+      border-radius: 12px;
+      padding: 1rem 1.25rem;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+    ">
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.75rem;">
+        <strong style="font-size:0.9rem; color:var(--text);">📋 Toggle Columns</strong>
+        <div style="display:flex; gap:0.5rem;">
+          <button type="button" onclick="toggleAllCols(true)"  class="btn btn-outline btn-sm" style="padding:0.25rem 0.7rem; font-size:0.78rem;">Show All</button>
+          <button type="button" onclick="toggleAllCols(false)" class="btn btn-outline btn-sm" style="padding:0.25rem 0.7rem; font-size:0.78rem;">Hide All</button>
+        </div>
+      </div>
+      <div id="col-checkboxes" style="
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem 1rem;
+      ">
+        {% for c in columns %}
+        <label style="
+          display:flex; align-items:center; gap:0.4rem;
+          font-size:0.82rem; color:var(--text);
+          cursor:pointer; white-space:nowrap;
+          background: rgba(26,86,232,0.05);
+          border: 1px solid rgba(26,86,232,0.15);
+          border-radius: 6px;
+          padding: 0.3rem 0.65rem;
+          transition: background 0.15s;
+        " onmouseover="this.style.background='rgba(26,86,232,0.1)'" onmouseout="this.style.background='rgba(26,86,232,0.05)'">
+          <input type="checkbox" checked
+            data-col="{{ loop.index0 }}"
+            onchange="toggleCol({{ loop.index0 }}, this.checked)"
+            style="accent-color: var(--primary); width:13px; height:13px; cursor:pointer;"
+          />
+          {{ c }}
+        </label>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Column Search Filter -->
+  <div style="display:flex; align-items:center; gap:0.65rem; margin-bottom:1rem; flex-wrap:wrap;">
+    <span style="font-size:0.82rem; color:var(--text-muted); white-space:nowrap; font-weight:500;">🔍 Column Search:</span>
+    <select id="col-search-select" class="risk-select" onchange="applyColSearch()" style="min-width:180px;">
+      <option value="">— Select Column —</option>
+      {% for c in columns %}
+      <option value="{{ loop.index0 }}">{{ c }}</option>
+      {% endfor %}
+    </select>
+    <input type="text" id="col-search-input"
+      placeholder="Type value to filter…"
+      oninput="applyColSearch()"
+      style="
+        flex:1; min-width:180px;
+        background: rgba(255,255,255,0.9);
+        border: 1.5px solid var(--border-strong);
+        border-radius: var(--radius-sm);
+        color: var(--text);
+        padding: 0.5rem 0.85rem;
+        font-family: 'DM Sans', sans-serif;
+        font-size: 0.88rem;
+        transition: border-color 0.2s;
+      "
+      onfocus="this.style.borderColor='var(--primary)'; this.style.boxShadow='0 0 0 3px rgba(26,86,232,0.10)'"
+      onblur="this.style.borderColor=''; this.style.boxShadow=''"
+    />
+    <span id="col-search-count" style="font-size:0.8rem; color:var(--text-muted); white-space:nowrap;"></span>
+    <button type="button" onclick="clearColSearch()" class="btn btn-outline btn-sm">✕ Clear</button>
+  </div>
+
   <div class="table-scroll">
-    <table class="data-table">
-      <thead><tr>{% for c in columns %}<th>{{ c }}</th>{% endfor %}</tr></thead>
+    <table class="data-table" id="main-data-table">
+      <thead><tr>{% for c in columns %}<th data-col-head="{{ loop.index0 }}">{{ c }}</th>{% endfor %}</tr></thead>
       <tbody>
         {% for row in rows %}
         <tr>
           {% for j in range(columns|length) %}
             {% if columns[j] == 'oil_supply_risk' %}
-              <td><span class="risk-pill risk-{{ row[j]|lower }}">{{ row[j] }}</span></td>
+              <td data-col-cell="{{ j }}"><span class="risk-pill risk-{{ row[j]|lower }}">{{ row[j] }}</span></td>
             {% else %}
-              <td>{{ row[j] }}</td>
+              <td data-col-cell="{{ j }}">{{ row[j] }}</td>
             {% endif %}
           {% endfor %}
         </tr>
@@ -51,7 +130,65 @@
     {% if page < total_pages %}<a href="/dataset?page={{ page+1 }}&q={{ search }}&risk={{ risk_filter }}&region={{ region_filter }}" class="btn btn-outline btn-sm">Next ›</a>{% endif %}
   </div>
   {% else %}
-  <div class="chart-placeholder">No dataset found — run the pipeline from the <a href="/">Dashboard</a></div>
+  <div class="chart-placeholder">No dataset found — pipeline is loading, please wait.</div>
   {% endif %}
 </section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function toggleColPanel() {
+  const panel = document.getElementById('col-panel');
+  const btn   = document.getElementById('col-toggle-btn');
+  const open  = panel.style.display === 'none';
+  panel.style.display = open ? 'block' : 'none';
+  btn.style.background = open ? 'rgba(26,86,232,0.1)' : '';
+  btn.style.borderColor = open ? 'var(--primary)' : '';
+}
+
+function toggleCol(idx, visible) {
+  document.querySelectorAll(`[data-col-head="${idx}"]`).forEach(el => {
+    el.style.display = visible ? '' : 'none';
+  });
+  document.querySelectorAll(`[data-col-cell="${idx}"]`).forEach(el => {
+    el.style.display = visible ? '' : 'none';
+  });
+}
+
+function toggleAllCols(visible) {
+  document.querySelectorAll('#col-checkboxes input[type="checkbox"]').forEach(cb => {
+    cb.checked = visible;
+    toggleCol(parseInt(cb.dataset.col), visible);
+  });
+}
+
+function applyColSearch() {
+  const colIdx = document.getElementById('col-search-select').value;
+  const term   = document.getElementById('col-search-input').value.trim().toLowerCase();
+  const rows   = document.querySelectorAll('#main-data-table tbody tr');
+  const countEl = document.getElementById('col-search-count');
+
+  if (colIdx === '' || term === '') {
+    rows.forEach(r => r.style.display = '');
+    countEl.textContent = '';
+    return;
+  }
+
+  let visible = 0;
+  rows.forEach(row => {
+    const cell = row.querySelector(`[data-col-cell="${colIdx}"]`);
+    const match = cell && cell.textContent.trim().toLowerCase().includes(term);
+    row.style.display = match ? '' : 'none';
+    if (match) visible++;
+  });
+  countEl.textContent = `${visible} row${visible !== 1 ? 's' : ''} matched`;
+}
+
+function clearColSearch() {
+  document.getElementById('col-search-select').value = '';
+  document.getElementById('col-search-input').value  = '';
+  document.getElementById('col-search-count').textContent = '';
+  document.querySelectorAll('#main-data-table tbody tr').forEach(r => r.style.display = '');
+}
+</script>
 {% endblock %}
