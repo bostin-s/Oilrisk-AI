@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Predict — OilRisk AI Global{% endblock %}
+{% block title %}Predict — OilRisk Global{% endblock %}
 
 {% block content %}
 <div class="page-header">
@@ -7,11 +7,8 @@
   <p class="subtitle">Enter conflict event details to predict oil supply disruption risk — worldwide coverage</p>
 </div>
 
-{% if not pipeline_done %}
-<div class="alert alert-warning">
-  ⚠️ Pipeline has not been run yet. <a href="/">Go to Dashboard</a> and run the pipeline first.
-</div>
-{% endif %}
+<!-- Inline error/info toast -->
+<div id="predict-toast" style="display:none; position:fixed;top:80px;right:24px;z-index:9999;min-width:320px;max-width:420px;"></div>
 
 <div class="predict-layout">
   <!-- Form -->
@@ -23,7 +20,8 @@
       <span class="label-small">Quick fill:</span>
       <button class="btn btn-sm btn-accent"   onclick="fillSample('critical')">🟣 CRITICAL — Hormuz</button>
       <button class="btn btn-sm btn-outline"  onclick="fillSample('redsea')" >🔴 HIGH — Red Sea</button>
-      <button class="btn btn-sm btn-outline"  onclick="fillSample('ukraine')">🟡 HIGH — Ukraine</button>
+      <button class="btn btn-sm btn-outline"  onclick="fillSample('ukraine')">🔴 HIGH — Ukraine</button>
+      <button class="btn btn-sm btn-outline"  onclick="fillSample('medium')">🟡 MEDIUM — Nigeria</button>
       <button class="btn btn-sm btn-outline"  onclick="fillSample('low')"    >🟢 LOW Event</button>
     </div>
 
@@ -90,7 +88,7 @@
       </div>
     </div>
 
-    <button class="btn btn-primary btn-full" onclick="runPrediction()" {% if not pipeline_done %}disabled{% endif %}>
+    <button class="btn btn-primary btn-full" onclick="runPrediction()">
       ▶ Predict Risk Level
     </button>
   </section>
@@ -109,6 +107,28 @@
 
 {% block scripts %}
 <script>
+
+function showToast(msg, type='error') {
+   const toast = document.getElementById('predict-toast');
+    const isError = type === 'error';
+    toast.innerHTML = `
+      <div style="
+        display:flex; align-items:flex-start; gap:0.75rem;
+       padding:1rem 1.25rem;
+        border-radius:12px;
+        background:${isError ? '#fff1f1' : '#fffbeb'};
+        border:1.5px solid ${isError ? '#fca5a5' : '#fcd34d'};
+        color:${isError ? '#991b1b' : '#92400e'};
+        font-size:0.92rem;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+       animation: fadeInDown 0.3s ease;
+     ">
+       Models are loading, please wait.
+   </div>`;
+  toast.style.display = 'block';
+   setTimeout(() => { toast.style.display = 'none'; }, 6000);
+  }
+
 let probaChart = null;
 
 const SAMPLES = {
@@ -130,6 +150,14 @@ const SAMPLES = {
     latitude:49.99, longitude:36.23, oil_infrastructure_hit:1,
     casualties_min:5, casualties_max:15, month:6, day:22
   },
+medium: {
+ actor_attacker:'MEND_Nigeria',
+ actor_target:'Nigeria_Gov',
+ event_type:'Ground_Assault', target_description:'Pipeline',
+   casualty_confidence:'Medium', latitude:5.00, longitude:6.00,
+  oil_infrastructure_hit:1, casualties_min:2, casualties_max:8,
+month:5, day:10
+     },
   low: {
     actor_attacker:'IDF', actor_target:'Iran', event_type:'Cyber_Attack',
     target_description:'Power_Plant', casualty_confidence:'Low',
@@ -166,11 +194,12 @@ function runPrediction() {
     body: JSON.stringify(payload)
   })
   .then(r => r.json())
-  .then(d => { if (d.error) { alert('Error: ' + d.error); return; } showResult(d); })
-  .catch(err => alert('Request failed: ' + err));
+  .then(d => { if (d.error) { showToast(d.error); return; } showResult(d); })
+  .catch(err => showToast('Request failed: ' + err));
 }
 
 const RISK_COLORS = { LOW:'#10b981', MEDIUM:'#f59e0b', HIGH:'#ef4444', CRITICAL:'#8b5cf6' };
+const RISK_ORDER  = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
 
 function showResult(d) {
   const panel = document.getElementById('result-panel');
@@ -180,9 +209,9 @@ function showResult(d) {
   badge.className = 'risk-badge-large risk-' + d.risk.toLowerCase();
   document.getElementById('model-tag').textContent = 'Model: ' + d.model_used;
 
-  const labels = Object.keys(d.probabilities);
-  const vals   = Object.values(d.probabilities);
-  const colors = labels.map(l => RISK_COLORS[l] || '#999');
+    const labels = RISK_ORDER;
+    const vals   = RISK_ORDER.map(r => d.probabilities[r] || 0);
+    const colors = RISK_ORDER.map(r => RISK_COLORS[r]);
 
   if (probaChart) probaChart.destroy();
   probaChart = new Chart(document.getElementById('probaChart'), {
@@ -206,8 +235,10 @@ function showResult(d) {
   });
 
   let html = '<table class="results-table"><thead><tr><th>Risk Level</th><th>Probability</th></tr></thead><tbody>';
-  for (const [k,v] of Object.entries(d.probabilities)) {
-    html += `<tr><td><span class="risk-pill risk-${k.toLowerCase()}">${k}</span></td><td><strong>${(v*100).toFixed(2)}%</strong></td></tr>`;
+  for (const r of RISK_ORDER) {
+      const v = d.probabilities[r] || 0;
+      const isWinner = r === d.risk;
+      html += `<tr${isWinner ? ' class="best-row"' : ''}><td>${r}</td><td>${v}%</td></tr>`;
   }
   html += '</tbody></table>';
   document.getElementById('proba-table').innerHTML = html;

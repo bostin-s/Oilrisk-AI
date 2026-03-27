@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>{% block title %}OilRisk AI — Global{% endblock %}</title>
+  <title>{% block title %}OilRisk — Global{% endblock %}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" />
@@ -31,7 +31,7 @@
 <nav class="navbar">
   <a class="nav-brand" href="/">
     <div class="nav-logo">🛢️</div>
-    <span class="nav-title">OilRisk<span class="accent">AI</span></span>
+    <span class="nav-title">OilRisk<span class="accent">Global</span></span>
   </a>
   <ul class="nav-links">
     <li><a href="/"              {% if request.path=='/'              %}class="active"{% endif %}>Dashboard</a></li>
@@ -42,13 +42,7 @@
     <li><a href="/sustainability" {% if request.path=='/sustainability'%}class="active"{% endif %}>Sustainability</a></li>
   </ul>
   <div class="nav-status">
-    {% if pipeline_done %}
-      <span class="badge badge-success"><span class="live-dot"></span>Pipeline Ready</span>
-    {% elif pipeline_running %}
-      <span class="badge badge-warning">⟳ Running…</span>
-    {% else %}
-      <span class="badge badge-muted">○ Not Run</span>
-    {% endif %}
+    <span class="badge badge-success"><span class="live-dot"></span>Live</span>
   </div>
 </nav>
 

@@ -3,7 +3,7 @@ app.py  —  Flask Web Application
 Global Oil Supply Risk Prediction (Israel–Iran + Worldwide)
 """
 
-import os, sys, json, threading, queue, base64, traceback
+import os, sys, json, threading, base64, traceback
 
 sys.path.insert(0, os.path.dirname(__file__))
 
@@ -18,8 +18,7 @@ except ImportError:
     sys.modules["xgboost"] = _xgb_stub
 
 from flask import (
-    Flask, render_template, request, jsonify,
-    Response, stream_with_context
+    Flask, render_template, request, jsonify
 )
 import pandas as pd
 
@@ -33,7 +32,6 @@ _state = {
     "running":         False,
     "done":            False,
     "error":           None,
-    "log_queue":       queue.Queue(),
     "models":          {},
     "scaler":          None,
     "le_dict":         {},
@@ -45,7 +43,6 @@ _state = {
 
 def _log(msg):
     print(msg, flush=True)
-    _state["log_queue"].put(msg)
 
 
 def _b64_chart(filename):
@@ -152,7 +149,7 @@ def _run_pipeline():
                      results_df=results_df, best_model=best_model,
                      scaler=scaler, le_dict=le_dict, out_dir=OD)
 
-        _log("✅ Pipeline complete! All 6 models trained on global dataset.")
+        _log("✅ All 6 models trained on global dataset.")
         _state["done"] = True
 
     except Exception as e:
@@ -161,7 +158,6 @@ def _run_pipeline():
         _log(f"❌ Error: {e}")
     finally:
         _state["running"] = False
-        _state["log_queue"].put("__DONE__")
 
 
 # ── Routes ────────────────────────────────────────────────────────────────────
@@ -172,40 +168,11 @@ def dashboard():
     if _state["results_df"] is not None:
         results = _state["results_df"].to_dict(orient="records")
     return render_template("dashboard.html",
-        pipeline_done    = _state["done"],
-        pipeline_running = _state["running"],
         best_model_name  = _state["best_model_name"],
         results          = results,
         dataset_stats    = _dataset_stats(),
     )
 
-
-@app.route("/run-pipeline", methods=["POST"])
-def run_pipeline():
-    if _state["running"]:
-        return jsonify({"status": "already_running"}), 409
-    while not _state["log_queue"].empty():
-        try: _state["log_queue"].get_nowait()
-        except: break
-    threading.Thread(target=_run_pipeline, daemon=True).start()
-    return jsonify({"status": "started"})
-
-
-@app.route("/pipeline-log")
-def pipeline_log():
-    def gen():
-        while True:
-            try:
-                msg = _state["log_queue"].get(timeout=30)
-                if msg == "__DONE__":
-                    yield f"data: {json.dumps({'done': True})}\n\n"
-                    break
-                yield f"data: {json.dumps({'log': msg})}\n\n"
-            except queue.Empty:
-                yield f"data: {json.dumps({'ping': True})}\n\n"
-    return Response(stream_with_context(gen()),
-        mimetype="text/event-stream",
-        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
 
 
 @app.route("/predict", methods=["GET", "POST"])
@@ -217,10 +184,9 @@ def predict_view():
             actors_target   = ACTORS_TARGET,
             event_types     = EVENT_TYPES,
             target_descs    = TARGET_DESCS,
-            pipeline_done   = _state["done"],
         )
     if not _state["models"]:
-        return jsonify({"error": "Run the pipeline first."}), 400
+        return jsonify({"error": "Models are loading, please wait."}), 400
     data = request.get_json(silent=True) or request.form.to_dict()
     try:
         from src.predict import predict_event
@@ -255,14 +221,13 @@ def batch_predict():
         samples = [{k: v for k, v in e.items()} for e in SAMPLE_EVENTS]
         return render_template("batch_predict.html",
             sample_events   = json.dumps(samples, indent=2),
-            pipeline_done   = _state["done"],
             actors_attacker = ACTORS_ATTACKER,
             actors_target   = ACTORS_TARGET,
             event_types     = EVENT_TYPES,
             target_descs    = TARGET_DESCS,
         )
     if not _state["models"]:
-        return jsonify({"error": "Run the pipeline first."}), 400
+        return jsonify({"error": "Models are loading, please wait."}), 400
     events = request.get_json(silent=True)
     if not isinstance(events, list):
         return jsonify({"error": "Body must be a JSON array."}), 400
@@ -285,8 +250,7 @@ def visualizations():
         "Model Comparison":    _b64_chart("model_comparison.png"),
         "Confusion Matrices":  _b64_chart("confusion_matrices.png"),
     }
-    return render_template("visualizations.html",
-        charts=charts, pipeline_done=_state["done"])
+    return render_template("visualizations.html", charts=charts)
 
 
 @app.route("/dataset")
@@ -316,13 +280,12 @@ def dataset_explorer():
     return render_template("dataset.html",
         columns=columns, rows=rows, page=page,
         total_pages=total_pages, total=total,
-        search=search, risk_filter=risk_f, region_filter=region_f,
-        pipeline_done=_state["done"])
+        search=search, risk_filter=risk_f, region_filter=region_f)
 
 
 @app.route("/sustainability")
 def sustainability():
-    return render_template("sustainability.html", pipeline_done=_state["done"])
+    return render_template("sustainability.html")
 
 
 # ── JSON API ──────────────────────────────────────────────────────────────────
@@ -335,7 +298,7 @@ def api_stats():
 @app.route("/api/model-results")
 def api_model_results():
     if _state["results_df"] is None:
-        return jsonify({"error": "Pipeline not run yet."}), 404
+        return jsonify({"error": "Models are loading, please wait."}), 404
     return jsonify(_state["results_df"].to_dict(orient="records"))
 
 
@@ -405,13 +368,20 @@ def api_live_events():
 @app.route("/health")
 def health():
     return jsonify({
-        "status":           "ok",
-        "pipeline_done":    _state["done"],
-        "pipeline_running": _state["running"],
-        "models_loaded":    list(_state["models"].keys()),
+        "status":        "ok",
+        "models_loaded": list(_state["models"].keys()),
     })
 
 
+# ── Auto-run pipeline on startup ─────────────────────────────────────────────
+def _auto_start_pipeline():
+    """Automatically run the pipeline once when the app starts."""
+    import time
+    time.sleep(1)  # Small delay to let Flask fully start
+    threading.Thread(target=_run_pipeline, daemon=True).start()
+
+threading.Thread(target=_auto_start_pipeline, daemon=True).start()
+
+
 if __name__ == "__main__":
-    _port = int(os.environ.get("PORT", 5000))
-    app.run(debug=False, host="0.0.0.0", port=_port, threaded=True)
+    app.run(debug=True, host="0.0.0.0", port=5000, threaded=True)

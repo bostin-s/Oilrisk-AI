@@ -1,5 +1,5 @@
 /**
- * leaflet-map.js  —  OilRisk AI  v10.0
+ * leaflet-map.js  —  OilRisk v10.0
  * =======================================
  * FIXES from v9:
  *   ✦ Image now correctly shows in popup (fixed margin:0 conflict)

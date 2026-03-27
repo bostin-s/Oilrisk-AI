@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Batch Predict — OilRisk AI Global{% endblock %}
+{% block title %}Batch Predict — OilRisk Global{% endblock %}
 
 {% block content %}
 <div class="page-header">
@@ -7,9 +7,7 @@
   <p class="subtitle">Submit multiple worldwide conflict events at once as a JSON array</p>
 </div>
 
-{% if not pipeline_done %}
-<div class="alert alert-warning">⚠️ Pipeline not run yet. <a href="/">Run the pipeline</a> first.</div>
-{% endif %}
+
 
 <div class="batch-layout">
   <section class="card">
@@ -17,7 +15,7 @@
     <p class="hint">Each object must include all required fields. The <code>_label</code> field is optional (display only).</p>
     <textarea id="json-input" class="json-editor" rows="22">{{ sample_events }}</textarea>
     <div class="btn-row mt-1">
-      <button class="btn btn-primary" onclick="runBatch()" {% if not pipeline_done %}disabled{% endif %}>▶ Run Batch Prediction</button>
+      <button class="btn btn-primary" onclick="runBatch()">▶ Run Batch Prediction</button>
       <button class="btn btn-outline" onclick="resetInput()">↺ Reset to Samples</button>
     </div>
   </section>

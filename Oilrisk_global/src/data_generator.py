@@ -149,16 +149,21 @@ def _assign_risk(oil_hit: int, cas_min: float, event: str, target: str,
     if oil_hit == 1:
         score += 2
     if cas_min > 30:
-        score += 2
+        score += 3
     elif cas_min > 15:
+        score += 2
+    elif cas_min > 5:
         score += 1
     if event in ("Missile_Strike", "Airstrike", "Naval_Strike"):
         score += 1
     if event in ("Pipeline_Sabotage", "Mine_Attack"):
         score += 2
-    if target in ("Oil_Refinery", "Pipeline", "Oil_Tanker", "LNG_Terminal",
-                  "Pumping_Station", "Offshore_Platform"):
-        score += 2
+    if event in ("Ground_Assault", "Rocket_Barrage"):
+        score += 1
+    if target in ("Oil_Refinery", "Oil_Tanker", "LNG_Terminal","Pumping_Station", "Offshore_Platform"):
+        score += 3
+    if target == "Pipeline":
+        score += 1
     if target in ("Strait_Blockade", "Port"):
         score += 2
     if target == "Nuclear_Facility":
@@ -168,9 +173,9 @@ def _assign_risk(oil_hit: int, cas_min: float, event: str, target: str,
         score += 2
     if region == "South Asia" and oil_hit == 1:
         score += 1  # India downstream risk from Hormuz closure
-    if score >= 6:
+    if score >= 8:
         return "CRITICAL"
-    elif score >= 4:
+    elif score >= 5:
         return "HIGH"
     elif score >= 2:
         return "MEDIUM"
