@@ -139,8 +139,8 @@ function pollStatus() {
       }
 
       const msg = data.running
-        ? '⏳ Training in progress… charts will appear automatically'
-        : '⏳ Server warming up, please wait…';
+        ? 'Training in progress… charts will appear automatically'
+        : 'Server warming up, please wait…';
       document.getElementById('status-text').textContent = msg;
 
       if (pollCount < MAX_POLLS) {

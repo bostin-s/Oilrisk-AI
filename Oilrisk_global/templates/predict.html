@@ -148,7 +148,7 @@ function showModelBanner(msg, ready=false) {
 // Check status on load
 checkModelStatus(data => {
   if (!data.ready) {
-    showModelBanner('⏳ Models are still training… Predict will work once ready (auto-checking)');
+    showModelBanner('Models are still training… Predict will work once ready (auto-checking)');
     pollUntilReady();
   }
 });
