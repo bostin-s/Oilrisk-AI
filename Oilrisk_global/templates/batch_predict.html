@@ -9,6 +9,13 @@
 
 
 
+<!-- Batch status toast -->
+<div id="batch-toast" style="display:none; margin-bottom:1rem; padding:0.85rem 1.1rem;
+  border-radius:10px; font-size:0.88rem; flex-direction:row; align-items:center; gap:0.6rem; line-height:1.4;">
+  <span id="batch-toast-icon" style="font-size:1rem; flex-shrink:0;"></span>
+  <span id="batch-toast-text"></span>
+</div>
+
 <div class="batch-layout">
   <section class="card">
     <h2>JSON Input</h2>
@@ -37,16 +44,51 @@ function resetInput() {
 
 let batchChart = null;
 
+function showBatchToast(msg, type='error') {
+  const toast = document.getElementById('batch-toast');
+  const icon  = document.getElementById('batch-toast-icon');
+  const text  = document.getElementById('batch-toast-text');
+  const isError = type === 'error';
+  const isWarn  = type === 'warn';
+  toast.style.background = isError ? '#fff1f1' : isWarn ? '#fffbeb' : '#f0fdf4';
+  toast.style.border     = '1.5px solid ' + (isError ? '#fca5a5' : isWarn ? '#fcd34d' : '#86efac');
+  toast.style.color      = isError ? '#991b1b' : isWarn ? '#92400e' : '#166534';
+  icon.textContent       = isError ? '❌' : isWarn ? '⏳' : '✅';
+  text.textContent       = msg;
+  toast.style.display    = 'flex';
+  if (type !== 'warn') setTimeout(() => { toast.style.display = 'none'; }, 7000);
+}
+
 function runBatch() {
   let events;
   try { events = JSON.parse(document.getElementById('json-input').value); }
-  catch(e) { alert('Invalid JSON: ' + e.message); return; }
+  catch(e) { showBatchToast('Invalid JSON: ' + e.message, 'error'); return; }
+
+  const btn = document.querySelector('.btn.btn-primary');
+  btn.textContent = '⏳ Running…'; btn.disabled = true;
+
   fetch('/batch-predict', {
     method:'POST', headers:{'Content-Type':'application/json'},
     body: JSON.stringify(events)
   })
   .then(r => r.json())
-  .then(d => { if (d.error) { alert('Error: ' + d.error); return; } showBatchResults(d, events); });
+  .then(d => {
+    btn.textContent = '▶ Run Batch Prediction'; btn.disabled = false;
+    if (d.error) {
+      if (d.error.includes('loading')) {
+        showBatchToast('Models are still loading. Please wait a moment and try again.', 'warn');
+      } else {
+        showBatchToast('Error: ' + d.error, 'error');
+      }
+      return;
+    }
+    document.getElementById('batch-toast').style.display = 'none';
+    showBatchResults(d, events);
+  })
+  .catch(err => {
+    btn.textContent = '▶ Run Batch Prediction'; btn.disabled = false;
+    showBatchToast('Request failed: ' + err, 'error');
+  });
 }
 
 const RISK_COLORS = { LOW:'#10b981', MEDIUM:'#f59e0b', HIGH:'#ef4444', CRITICAL:'#8b5cf6' };

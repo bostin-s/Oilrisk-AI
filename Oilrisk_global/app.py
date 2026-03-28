@@ -373,6 +373,40 @@ def health():
     })
 
 
+@app.route("/api/chart/<n>")
+def api_chart(n):
+    """Return a single chart as base64 — frontend fetches individually, no page reload."""
+    allowed = {
+        "eda_visualization", "correlation_heatmap",
+        "feature_importance", "model_comparison", "confusion_matrices"
+    }
+    if n not in allowed:
+        return jsonify({"error": "unknown chart"}), 404
+    data = _b64_chart(n + ".png")
+    if not data:
+        return jsonify({"error": "not ready"}), 404
+    # Strip the data:image/png;base64, prefix — frontend adds it
+    b64 = data.split(",", 1)[1]
+    return jsonify({"data": b64})
+
+
+@app.route("/api/status")
+def api_status():
+    """Frontend polls this to know when models are ready."""
+    if _state["error"]:
+        return jsonify({
+            "ready":       False,
+            "running":     False,
+            "error":       _state["error"][:300],
+        })
+    return jsonify({
+        "ready":       _state["done"],
+        "running":     _state["running"],
+        "model_count": len(_state["models"]),
+        "best_model":  _state["best_model_name"],
+    })
+
+
 # ── Auto-run pipeline on startup ─────────────────────────────────────────────
 def _auto_start_pipeline():
     """Automatically run the pipeline once when the app starts."""
