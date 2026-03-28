@@ -35,3 +35,6 @@ notebook>=7.0.0
 ipykernel>=6.0.0
 jupyterlab>=4.0.0
 ipywidgets>=8.0.0
+
+# ── Production server ─────────────────────────────────────
+gunicorn>=21.0.0
