@@ -26,6 +26,8 @@ env/
 .ipynb_checkpoints/
 *.ipynb_checkpoints
 
+
+
 # ── Generated outputs (large files) ───────────────────────────
 outputs/*.png
 outputs/*.xlsx
