@@ -407,14 +407,34 @@ def api_status():
     })
 
 
-# ── Auto-run pipeline on startup ─────────────────────────────────────────────
-def _auto_start_pipeline():
-    """Automatically run the pipeline once when the app starts."""
-    import time
-    time.sleep(1)  # Small delay to let Flask fully start
-    threading.Thread(target=_run_pipeline, daemon=True).start()
+# ── Load pre-trained models on startup ───────────────────────────────────────
+def _load_pretrained():
+    """Load models saved by main.py instead of re-training on Render."""
+    import joblib, time
+    OD = app.config["OUTPUT_DIR"]
 
-threading.Thread(target=_auto_start_pipeline, daemon=True).start()
+    required = ["models.pkl", "scaler.pkl", "le_dict.pkl", "results_df.pkl"]
+    # Wait briefly in case of cold start filesystem sync
+    for _ in range(10):
+        if all(os.path.exists(os.path.join(OD, f)) for f in required):
+            break
+        time.sleep(1)
+
+    try:
+        _state["models"]          = joblib.load(os.path.join(OD, "models.pkl"))
+        _state["scaler"]          = joblib.load(os.path.join(OD, "scaler.pkl"))
+        _state["le_dict"]         = joblib.load(os.path.join(OD, "le_dict.pkl"))
+        _state["results_df"]      = joblib.load(os.path.join(OD, "results_df.pkl"))
+        _state["best_model_name"] = _state["results_df"].iloc[0]["Model"]
+        _state["done"]            = True
+        _log(f"✅ Pre-trained models loaded: {list(_state['models'].keys())}")
+        _log(f"   Best model: {_state['best_model_name']}")
+    except Exception as e:
+        _log(f"⚠️  Pre-trained models not found, running pipeline: {e}")
+        # Fallback — run pipeline if pkl files missing
+        threading.Thread(target=_run_pipeline, daemon=True).start()
+
+threading.Thread(target=_load_pretrained, daemon=True).start()
 
 
 if __name__ == "__main__":

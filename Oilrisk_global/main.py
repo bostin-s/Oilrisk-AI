@@ -10,6 +10,7 @@ Run:
 """
 
 import os, sys, time
+import joblib
 sys.path.insert(0, os.path.dirname(__file__))
 
 from src.data_generator import generate_dataset, save_dataset
@@ -89,8 +90,18 @@ def main():
     print("\n── STEP 12: Retrain with best hyperparameters ──")
     best_models = retrain_best_models(best_results, X_train_s, y_train)
 
+    print("\n── STEP 12b: Saving models, scaler & encoders to outputs/ ──")
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
+    joblib.dump(best_models, os.path.join(OUTPUT_DIR, "models.pkl"))
+    joblib.dump(scaler,      os.path.join(OUTPUT_DIR, "scaler.pkl"))
+    joblib.dump(le_dict,     os.path.join(OUTPUT_DIR, "le_dict.pkl"))
+    # Save results_df after evaluation — patch below
+    print("  → models.pkl, scaler.pkl, le_dict.pkl saved ✓")
+
     print("\n── STEP 13: Evaluate all best models on test set ──")
     results_df = evaluate_all_models(best_models, X_test_s, y_test)
+    joblib.dump(results_df, os.path.join(OUTPUT_DIR, "results_df.pkl"))
+    print("  → results_df.pkl saved ✓")
 
     print("\n── STEP 14: Generate output charts ──")
     rf_model = best_models.get("Random Forest")
