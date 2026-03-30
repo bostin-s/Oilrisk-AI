@@ -59,7 +59,37 @@ function showBatchToast(msg, type='error') {
   if (type !== 'warn') setTimeout(() => { toast.style.display = 'none'; }, 7000);
 }
 
+// Check model status on page load
+let batchModelReady = false;
+fetch('/api/status').then(r => r.json()).then(data => {
+  batchModelReady = data.ready;
+  if (!data.ready) {
+    const btn = document.querySelector('.btn.btn-primary');
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = '🔒 Train Models First';
+      btn.style.opacity = '0.6';
+      btn.style.cursor = 'not-allowed';
+    }
+    showBatchToast('Models not trained yet. Go to Dashboard → Start Training first.', 'warn');
+    // Add dashboard link
+    const toastEl = document.getElementById('batch-toast');
+    if (toastEl && !document.getElementById('batch-go-btn')) {
+      const goBtn = document.createElement('a');
+      goBtn.id = 'batch-go-btn';
+      goBtn.href = '/?train=1';
+      goBtn.textContent = '🚀 Train Now';
+      goBtn.style.cssText = 'margin-left:1rem;background:linear-gradient(135deg,#3b82f6,#6366f1);color:#fff;border-radius:8px;padding:0.4rem 1rem;font-size:0.85rem;font-weight:600;text-decoration:none;';
+      toastEl.appendChild(goBtn);
+    }
+  }
+}).catch(() => {});
+
 function runBatch() {
+  if (!batchModelReady) {
+    showBatchToast('Models not trained yet. Go to Dashboard → Start Training first.', 'warn');
+    return;
+  }
   let events;
   try { events = JSON.parse(document.getElementById('json-input').value); }
   catch(e) { showBatchToast('Invalid JSON: ' + e.message, 'error'); return; }
@@ -76,7 +106,7 @@ function runBatch() {
     btn.textContent = '▶ Run Batch Prediction'; btn.disabled = false;
     if (d.error) {
       if (d.error.includes('loading')) {
-        showBatchToast('Models are still loading. Please wait a moment and try again.', 'warn');
+        window.location.href = '/?train=1';
       } else {
         showBatchToast('Error: ' + d.error, 'error');
       }

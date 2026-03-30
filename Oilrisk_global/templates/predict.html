@@ -145,11 +145,41 @@ function showModelBanner(msg, ready=false) {
   }
 }
 
-// Check status on load
+// Check status on load — show banner, do NOT redirect
 checkModelStatus(data => {
   if (!data.ready) {
-    showModelBanner('Models are still training… Predict will work once ready (auto-checking)');
-    pollUntilReady();
+    showModelBanner('⚠️ Models not trained yet. Go to Dashboard to train first.');
+    const btn = document.querySelector('.btn-primary.btn-full');
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = '🔒 Train Models First';
+      btn.style.opacity = '0.6';
+      btn.style.cursor = 'not-allowed';
+    }
+    // Add dashboard link banner
+    const banner = document.getElementById('model-status-banner');
+    if (banner) {
+      banner.style.display = 'flex';
+      banner.style.background = 'linear-gradient(135deg,#1e3a5f,#0f172a)';
+      banner.style.border = '1px solid rgba(99,102,241,0.4)';
+      banner.style.borderRadius = '10px';
+      banner.style.padding = '0.9rem 1.2rem';
+      banner.style.marginBottom = '1rem';
+      banner.style.alignItems = 'center';
+      banner.style.justifyContent = 'space-between';
+      banner.style.gap = '1rem';
+      const txt = document.getElementById('model-status-text');
+      if (txt) txt.textContent = '🤖 Models are not trained yet.';
+      // Add go-to-dashboard button inside banner
+      if (!document.getElementById('go-train-btn')) {
+        const goBtn = document.createElement('a');
+        goBtn.id = 'go-train-btn';
+        goBtn.href = '/?train=1';
+        goBtn.textContent = '🚀 Go Train Models';
+        goBtn.style.cssText = 'background:linear-gradient(135deg,#3b82f6,#6366f1);color:#fff;border-radius:8px;padding:0.5rem 1.2rem;font-size:0.9rem;font-weight:600;text-decoration:none;white-space:nowrap;';
+        banner.appendChild(goBtn);
+      }
+    }
   }
 });
 
@@ -259,10 +289,7 @@ function getPayload() {
 function runPrediction() {
   const payload = getPayload();
   if (!modelReady) {
-    // Queue it and show message
-    pendingPayload = payload;
-    showModelBanner('Models are still loading… your prediction will run automatically once ready!');
-    showToast('Models are still training. Your prediction is queued — it will run automatically!', 'warn');
+    showToast('Models not trained yet. Please go to Dashboard and click Start Training first.', 'warn');
     return;
   }
   submitPrediction(payload);
@@ -282,7 +309,7 @@ function submitPrediction(payload) {
     if (btn) { btn.textContent = '▶ Predict Risk Level'; btn.disabled = false; }
     if (d.error) {
       if (d.error.includes('loading')) {
-        showToast('Models are still loading. Please wait a moment and try again.', 'warn');
+        window.location.href = '/?train=1';
       } else {
         showToast(d.error);
       }

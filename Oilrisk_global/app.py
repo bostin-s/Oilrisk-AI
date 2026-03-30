@@ -38,6 +38,8 @@ _state = {
     "results_df":      None,
     "df_encoded":      None,
     "best_model_name": None,
+    "progress":        0,
+    "progress_msg":    "Waiting to start…",
 }
 
 
@@ -96,41 +98,43 @@ def _run_pipeline():
         os.makedirs(DD, exist_ok=True)
         os.makedirs(OD, exist_ok=True)
 
-        _log("▶ [1/10] Generating 1,500-row global synthetic dataset…")
+        def _prog(pct, msg):
+            _state["progress"]     = pct
+            _state["progress_msg"] = msg
+            _log(f"▶ [{pct}%] {msg}")
+
+        _prog(5,  "Generating dataset (1,500 rows)…")
         df_raw = generate_dataset(n=1500, seed=42)
-        gc.collect()
         save_dataset(df_raw, out_dir=DD)
-        _log(f"   Shape: {df_raw.shape} | Regions: {df_raw['region'].nunique()}")
+        gc.collect()
 
-        _log("▶ [2/10] Cleaning data…")
+        _prog(15, "Cleaning data…")
         df_clean = clean(df_raw)
-        del df_raw
-        gc.collect()
+        del df_raw; gc.collect()
 
-        _log("▶ [3/10] Feature engineering…")
+        _prog(25, "Feature engineering…")
         df_feat = engineer_features(df_clean)
-        del df_clean
-        gc.collect()
+        del df_clean; gc.collect()
 
-        _log("▶ [4/10] Generating EDA visualisations…")
+        _prog(35, "Generating EDA visualisations…")
         plot_eda(df_feat, out_dir=OD)
         plot_correlation_heatmap(df_feat, out_dir=OD)
 
-        _log("▶ [5/10] Encoding categorical features…")
+        _prog(45, "Encoding categorical features…")
         df_enc, le_dict = encode(df_feat)
         _state["le_dict"]    = le_dict
         _state["df_encoded"] = df_enc
 
-        _log("▶ [6/10] Feature selection & 80/20 stratified split…")
+        _prog(55, "Feature selection & train/test split…")
         X, y = select_features(df_enc)
         X_train, X_test, y_train, y_test = split(X, y, seed=42)
         save_splits(X_train, X_test, y_train, y_test, out_dir=DD)
 
-        _log("▶ [7/10] StandardScaler feature scaling…")
+        _prog(65, "Scaling features…")
         X_train_s, X_test_s, scaler = scale(X_train, X_test)
         _state["scaler"] = scaler
 
-        _log("▶ [8/10] GridSearchCV tuning (3-fold, 6 models)…")
+        _prog(75, "GridSearchCV tuning all 6 models…")
         best_results = grid_search_all(X_train_s, y_train, cv=2)
         best_models  = retrain_best_models(best_results, X_train_s, y_train)
         _state["models"] = best_models
@@ -154,6 +158,8 @@ def _run_pipeline():
                      results_df=results_df, best_model=best_model,
                      scaler=scaler, le_dict=le_dict, out_dir=OD)
 
+        _state["progress"]     = 100
+        _state["progress_msg"] = "All 6 models ready! ✅"
         _log("✅ All 6 models trained on global dataset.")
         _state["done"] = True
 
@@ -370,6 +376,19 @@ def api_live_events():
     return jsonify(events)
 
 
+@app.route("/api/train", methods=["POST"])
+def api_train():
+    """Trigger training from the UI button."""
+    if _state["running"]:
+        return jsonify({"status": "already_running", "message": "Training already in progress."})
+    if _state["done"]:
+        return jsonify({"status": "already_done", "message": "Models already trained."})
+    _state["progress"]     = 0
+    _state["progress_msg"] = "Starting pipeline…"
+    threading.Thread(target=_run_pipeline, daemon=True).start()
+    return jsonify({"status": "started", "message": "Training started!"})
+
+
 @app.route("/health")
 def health():
     return jsonify({
@@ -405,10 +424,12 @@ def api_status():
             "error":       _state["error"][:300],
         })
     return jsonify({
-        "ready":       _state["done"],
-        "running":     _state["running"],
-        "model_count": len(_state["models"]),
-        "best_model":  _state["best_model_name"],
+        "ready":        _state["done"],
+        "running":      _state["running"],
+        "model_count":  len(_state["models"]),
+        "best_model":   _state["best_model_name"],
+        "progress":     _state.get("progress", 0),
+        "progress_msg": _state.get("progress_msg", "Waiting…"),
     })
 
 
