@@ -3,6 +3,67 @@
 
 {% block content %}
 
+<!-- ══ TRAINING PANEL ══════════════════════════════════════════════════════ -->
+<style>
+#trainPanel { display:none; margin-bottom:1.5rem; }
+.tp-wrap { background:linear-gradient(135deg,#0f172a 0%,#1e3a5f 100%);border-radius:16px;padding:2rem 2.5rem;box-shadow:0 8px 32px rgba(0,0,0,0.25);border:1px solid rgba(255,255,255,0.08); }
+.tp-top { display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem; }
+.tp-title { font-size:1.3rem;font-weight:700;color:#f1f5f9;margin-bottom:0.3rem; }
+#trainMsg { color:#94a3b8;font-size:0.95rem; }
+#trainBtn {
+  background:linear-gradient(135deg,#3b82f6,#6366f1);color:#fff;border:none;
+  border-radius:10px;padding:0.75rem 2rem;font-size:1rem;font-weight:600;
+  cursor:pointer;transition:all .2s;box-shadow:0 4px 15px rgba(99,102,241,0.4);
+}
+#trainBtn:hover:not(:disabled) { transform:translateY(-2px);box-shadow:0 6px 20px rgba(99,102,241,0.6); }
+#trainBtn:disabled { opacity:0.65;cursor:not-allowed; }
+#progressWrap { display:none;margin-top:1.5rem; }
+.prog-row { display:flex;justify-content:space-between;margin-bottom:0.5rem; }
+#progressLabel { color:#cbd5e1;font-size:0.9rem;font-weight:500; }
+#progressPct { color:#60a5fa;font-size:0.9rem;font-weight:700; }
+.prog-track { background:rgba(255,255,255,0.1);border-radius:999px;height:10px;overflow:hidden; }
+#progressBar { height:100%;width:0%;border-radius:999px;background:linear-gradient(90deg,#3b82f6,#6366f1,#8b5cf6);transition:width 0.6s ease;box-shadow:0 0 12px rgba(99,102,241,0.7); }
+.step-badges { display:flex;gap:0.4rem;margin-top:1rem;flex-wrap:wrap; }
+.step-badge { background:rgba(255,255,255,0.07);color:#94a3b8;border-radius:999px;padding:0.3rem 0.8rem;font-size:0.78rem;font-weight:500;border:1px solid rgba(255,255,255,0.1);transition:all 0.3s; }
+.step-badge.active { background:rgba(99,102,241,0.3);color:#a5b4fc;border-color:rgba(99,102,241,0.5);box-shadow:0 0 8px rgba(99,102,241,0.4); }
+.step-badge.done { background:rgba(16,185,129,0.2);color:#6ee7b7;border-color:rgba(16,185,129,0.4); }
+#trainSuccess { display:none;margin-top:1.2rem;padding:1rem 1.5rem;background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.3);border-radius:10px;color:#10b981;font-weight:600; }
+#trainError { display:none;margin-top:1.2rem;padding:1rem 1.5rem;background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);border-radius:10px; }
+#trainErrorMsg { color:#ef4444;font-weight:600; }
+</style>
+
+<div id="trainPanel">
+  <div class="tp-wrap">
+    <div class="tp-top">
+      <div>
+        <div class="tp-title">🤖 AI Model Training</div>
+        <div id="trainMsg">Click the button to train all 6 models on the Oil Risk dataset.</div>
+      </div>
+      <button id="trainBtn">🚀 Start Training</button>
+    </div>
+    <div id="progressWrap">
+      <div class="prog-row">
+        <span id="progressLabel">Initialising…</span>
+        <span id="progressPct">0%</span>
+      </div>
+      <div class="prog-track"><div id="progressBar"></div></div>
+      <div class="step-badges">
+        <span class="step-badge" id="step1">📊 Data</span>
+        <span class="step-badge" id="step2">🔧 Features</span>
+        <span class="step-badge" id="step3">📈 EDA Charts</span>
+        <span class="step-badge" id="step4">🔢 Encoding</span>
+        <span class="step-badge" id="step5">⚖️ Scaling</span>
+        <span class="step-badge" id="step6">🔍 GridSearch</span>
+        <span class="step-badge" id="step7">📉 Evaluate</span>
+        <span class="step-badge" id="step8">✅ Done</span>
+      </div>
+    </div>
+    <div id="trainSuccess">✅ All 6 models trained! Predict and Batch-Predict are now ready.</div>
+    <div id="trainError"><span id="trainErrorMsg"></span></div>
+  </div>
+</div>
+<!-- ══ END TRAINING PANEL ══════════════════════════════════════════════════ -->
+
 <!-- Hero Banner -->
 <div class="hero-banner">
   <div class="hero-content">
@@ -227,6 +288,122 @@
 
 {% block scripts %}
 <script>
+// ── Training Panel ────────────────────────────────────────────────────────
+(function () {
+  var pollTimer = null;
+
+  function el(id) { return document.getElementById(id); }
+
+  function setProgress(pct, msg) {
+    el('progressBar').style.width = pct + '%';
+    el('progressPct').textContent  = pct + '%';
+    el('progressLabel').textContent = msg || 'Running…';
+    var steps = [0,5,25,35,45,65,75,90,100];
+    var active = 0;
+    for (var i = steps.length-1; i >= 0; i--) {
+      if (pct >= steps[i]) { active = i; break; }
+    }
+    for (var s = 1; s <= 8; s++) {
+      var b = el('step'+s);
+      if (!b) continue;
+      b.className = 'step-badge' + (s < active ? ' done' : s === active ? ' active' : '');
+    }
+  }
+
+  function showProgress() {
+    el('progressWrap').style.display = 'block';
+    el('trainSuccess').style.display = 'none';
+    el('trainError').style.display   = 'none';
+  }
+
+  function hideProgress() {
+    el('progressWrap').style.display = 'none';
+  }
+
+  function showSuccess() {
+    if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+    hideProgress();
+    el('trainSuccess').style.display = 'block';
+    setTimeout(function(){ el('trainPanel').style.display = 'none'; }, 2000);
+  }
+
+  function showError(msg) {
+    if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+    el('trainError').style.display = 'block';
+    el('trainErrorMsg').textContent = '❌ ' + msg;
+    var btn = el('trainBtn');
+    btn.disabled = false;
+    btn.textContent = '🔄 Retry';
+  }
+
+  function startPoll() {
+    if (pollTimer) return;
+    pollTimer = setInterval(function() {
+      fetch('/api/status').then(function(r){ return r.json(); }).then(function(d) {
+        setProgress(d.progress || 0, d.progress_msg);
+        if (d.error)       { showError(d.error); }
+        else if (d.ready)  { setProgress(100, 'All models ready!'); showSuccess(); }
+      }).catch(function(){});
+    }, 2000);
+  }
+
+  // ── Button click handler (single source of truth) ──
+  el('trainBtn').addEventListener('click', function() {
+    var btn = el('trainBtn');
+
+    // If already polling (was running state), just show progress
+    if (pollTimer) {
+      showProgress();
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = '⏳ Starting…';
+    el('trainMsg').textContent = 'Connecting to server…';
+    hideProgress();
+
+    fetch('/api/train', { method: 'POST' })
+      .then(function(r){ return r.json(); })
+      .then(function(d) {
+        if (d.status === 'already_done') { showSuccess(); return; }
+        // Server confirmed — NOW show progress bar and start polling
+        btn.textContent = '⏳ Training…';
+        el('trainMsg').textContent = 'Pipeline running in background…';
+        showProgress();
+        setProgress(0, 'Starting pipeline…');
+        startPoll();
+      })
+      .catch(function(){ showError('Could not reach server.'); btn.disabled = false; btn.textContent = '🚀 Start Training'; });
+  });
+
+  // ── Page load — check status, NEVER auto-show progressWrap ──
+  fetch('/api/status').then(function(r){ return r.json(); }).then(function(d) {
+    if (d.ready) {
+      el('trainPanel').style.display = 'none';   // all good, hide panel
+    } else {
+      el('trainPanel').style.display = 'block';  // show panel
+      hideProgress();                             // ALWAYS hide progress on load
+      if (d.running) {
+        // Training in background — button ENABLED, click to see progress
+        var btn = el('trainBtn');
+        btn.disabled = false;
+        btn.textContent = '📊 Show Training Progress';
+        el('trainMsg').textContent = 'Models are training in the background. Click to see live progress.';
+        startPoll(); // poll silently — progress bar only shows on button click
+      }
+    }
+    if (new URLSearchParams(window.location.search).get('train') === '1') {
+      el('trainPanel').style.display = 'block';
+      hideProgress();
+    }
+  }).catch(function(){
+    el('trainPanel').style.display = 'block';
+    hideProgress();
+  });
+
+})();
+// ── End Training Panel ─────────────────────────────────────────────────────
+
 document.querySelectorAll('[data-risk-filter]').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('[data-risk-filter]').forEach(b=>b.classList.remove('active'));
