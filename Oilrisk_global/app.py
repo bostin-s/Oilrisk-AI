@@ -126,7 +126,7 @@ def _run_pipeline():
         _state["scaler"] = scaler
 
         _log("▶ [8/10] GridSearchCV tuning (3-fold, 6 models)…")
-        best_results = grid_search_all(X_train_s, y_train, cv=3)
+        best_results = grid_search_all(X_train_s, y_train, cv=2)
         best_models  = retrain_best_models(best_results, X_train_s, y_train)
         _state["models"] = best_models
 

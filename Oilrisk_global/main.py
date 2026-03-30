@@ -81,11 +81,11 @@ def main():
     default_models = train_default_models(X_train_s, y_train)
 
     print("\n── STEP 10: Cross-validation (Decision Tree, 5-fold) ──")
-    cv_result = cross_validate_model("Decision Tree", X_train_s, y_train, cv=5)
+    cv_result = cross_validate_model("Decision Tree", X_train_s, y_train, cv=2)
     print(f"  CV mean accuracy: {cv_result['mean']:.4f} ± {cv_result['std']:.4f}")
 
     print("\n── STEP 11: GridSearchCV (all models, 3-fold) ──")
-    best_results = grid_search_all(X_train_s, y_train, cv=3)
+    best_results = grid_search_all(X_train_s, y_train, cv=2)
 
     print("\n── STEP 12: Retrain with best hyperparameters ──")
     best_models = retrain_best_models(best_results, X_train_s, y_train)
