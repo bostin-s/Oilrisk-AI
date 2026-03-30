@@ -33,7 +33,7 @@ from src.predict        import run_sample_predictions
 
 DATA_DIR    = "data"
 OUTPUT_DIR  = "outputs"
-N_ROWS      = 5000
+N_ROWS      = 1500
 RANDOM_SEED = 42
 
 
