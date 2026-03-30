@@ -3,7 +3,7 @@ app.py  —  Flask Web Application
 Global Oil Supply Risk Prediction (Israel–Iran + Worldwide)
 """
 
-import os, sys, json, threading, base64, traceback
+import os, sys, json, threading, base64, traceback, gc
 
 sys.path.insert(0, os.path.dirname(__file__))
 
@@ -96,16 +96,21 @@ def _run_pipeline():
         os.makedirs(DD, exist_ok=True)
         os.makedirs(OD, exist_ok=True)
 
-        _log("▶ [1/10] Generating 5,000-row global synthetic dataset…")
-        df_raw = generate_dataset(n=5000, seed=42)
+        _log("▶ [1/10] Generating 1,500-row global synthetic dataset…")
+        df_raw = generate_dataset(n=1500, seed=42)
+        gc.collect()
         save_dataset(df_raw, out_dir=DD)
         _log(f"   Shape: {df_raw.shape} | Regions: {df_raw['region'].nunique()}")
 
         _log("▶ [2/10] Cleaning data…")
         df_clean = clean(df_raw)
+        del df_raw
+        gc.collect()
 
         _log("▶ [3/10] Feature engineering…")
         df_feat = engineer_features(df_clean)
+        del df_clean
+        gc.collect()
 
         _log("▶ [4/10] Generating EDA visualisations…")
         plot_eda(df_feat, out_dir=OD)
