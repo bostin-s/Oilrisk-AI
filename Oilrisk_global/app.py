@@ -409,16 +409,22 @@ def api_status():
 
 # ── Load pre-trained models on startup ───────────────────────────────────────
 def _load_pretrained():
-    """Load models saved by main.py instead of re-training on Render."""
-    import joblib, time
+    """
+    Load pre-trained models if available (Render build / after running main.py).
+    If not found, automatically run the training pipeline in background.
+    """
+    import joblib
     OD = app.config["OUTPUT_DIR"]
+    os.makedirs(OD, exist_ok=True)
 
     required = ["models.pkl", "scaler.pkl", "le_dict.pkl", "results_df.pkl"]
-    # Wait briefly in case of cold start filesystem sync
-    for _ in range(10):
-        if all(os.path.exists(os.path.join(OD, f)) for f in required):
-            break
-        time.sleep(1)
+    missing  = [f for f in required if not os.path.exists(os.path.join(OD, f))]
+
+    if missing:
+        _log("⚠️  Model files not found — starting background training pipeline...")
+        _log("   This takes ~5 min. /api/status will update when ready.")
+        threading.Thread(target=_run_pipeline, daemon=True).start()
+        return
 
     try:
         _state["models"]          = joblib.load(os.path.join(OD, "models.pkl"))
@@ -427,11 +433,11 @@ def _load_pretrained():
         _state["results_df"]      = joblib.load(os.path.join(OD, "results_df.pkl"))
         _state["best_model_name"] = _state["results_df"].iloc[0]["Model"]
         _state["done"]            = True
-        _log(f"✅ Pre-trained models loaded: {list(_state['models'].keys())}")
+        _log(f"✅ Pre-trained models loaded instantly: {list(_state['models'].keys())}")
         _log(f"   Best model: {_state['best_model_name']}")
     except Exception as e:
-        _log(f"⚠️  Pre-trained models not found, running pipeline: {e}")
-        # Fallback — run pipeline if pkl files missing
+        _log(f"❌ Failed to load model files: {e}")
+        _log("   Falling back to background training...")
         threading.Thread(target=_run_pipeline, daemon=True).start()
 
 threading.Thread(target=_load_pretrained, daemon=True).start()
