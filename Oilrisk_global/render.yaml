@@ -2,8 +2,8 @@ services:
   - type: web
     name: oilrisk-ai
     env: python
-    buildCommand: pip install -r requirements.txt && pip install gunicorn
-    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --timeout 600 --workers 1 --threads 2
+    buildCommand: pip install -r requirements.txt && pip install gunicorn && python main.py
+    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --timeout 120 --workers 1 --threads 4
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.0

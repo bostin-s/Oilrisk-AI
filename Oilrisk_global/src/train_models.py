@@ -1,10 +1,11 @@
 """
 train_models.py
 ===============
-Trains 6 machine learning models using the preprocessed dataset:
+Trains 6 machine learning models using the preprocessed dataset.
+GridSearchCV kept but with slim param grids for speed.
 
   Bagging family:
-    1. Decision Tree (base/single model)
+    1. Decision Tree
     2. Random Forest
     3. BaggingClassifier
 
@@ -28,7 +29,9 @@ from sklearn.model_selection import GridSearchCV, cross_val_score
 from xgboost import XGBClassifier
 
 
-# ── Model registry ────────────────────────────────────────────────────────────
+# ── Model registry ─────────────────────────────────────────────────────────────
+# grid_params kept small (2 values max per param) for speed
+# n_jobs=-1 on all models for parallel CPU usage
 
 MODELS_CONFIG = [
     {
@@ -36,25 +39,25 @@ MODELS_CONFIG = [
         "model_class": DecisionTreeClassifier,
         "default_params": {"random_state": 42, "class_weight": "balanced"},
         "grid_params": {
-            "max_depth": [None, 10, 20, 30],
-            "min_samples_split": [2, 5, 10],
+            "max_depth": [10, 20],
+            "min_samples_split": [2, 5],
         },
     },
     {
         "name": "Random Forest",
         "model_class": RandomForestClassifier,
-        "default_params": {"n_estimators": 100, "random_state": 42, "class_weight": "balanced"},
+        "default_params": {"n_estimators": 100, "random_state": 42, "class_weight": "balanced", "n_jobs": -1},
         "grid_params": {
-            "n_estimators": [50, 100, 200],
-            "max_depth": [5, 10, None],
+            "n_estimators": [50, 100],
+            "max_depth": [10, 20],
         },
     },
     {
         "name": "Bagging Classifier",
         "model_class": BaggingClassifier,
-        "default_params": {"n_estimators": 50, "random_state": 42},
+        "default_params": {"n_estimators": 50, "random_state": 42, "n_jobs": -1},
         "grid_params": {
-            "n_estimators": [10, 50, 100],
+            "n_estimators": [25, 50],
         },
     },
     {
@@ -62,8 +65,8 @@ MODELS_CONFIG = [
         "model_class": AdaBoostClassifier,
         "default_params": {"n_estimators": 100, "learning_rate": 0.1, "random_state": 42},
         "grid_params": {
-            "n_estimators": [50, 100, 200],
-            "learning_rate": [0.01, 0.1, 1.0],
+            "n_estimators": [50, 100],
+            "learning_rate": [0.1, 1.0],
         },
     },
     {
@@ -71,8 +74,8 @@ MODELS_CONFIG = [
         "model_class": GradientBoostingClassifier,
         "default_params": {"n_estimators": 100, "learning_rate": 0.1, "random_state": 42},
         "grid_params": {
-            "n_estimators": [50, 100, 200],
-            "learning_rate": [0.01, 0.1, 1.0],
+            "n_estimators": [50, 100],
+            "learning_rate": [0.1, 1.0],
         },
     },
     {
@@ -84,10 +87,11 @@ MODELS_CONFIG = [
             "use_label_encoder": False,
             "eval_metric": "mlogloss",
             "random_state": 42,
+            "n_jobs": -1,
         },
         "grid_params": {
-            "n_estimators": [50, 100, 200],
-            "learning_rate": [0.01, 0.1, 1.0],
+            "n_estimators": [50, 100],
+            "learning_rate": [0.1, 1.0],
         },
     },
 ]
@@ -105,7 +109,7 @@ def train_default_models(X_train, y_train) -> dict:
     return trained
 
 
-def cross_validate_model(model_name: str, X_train, y_train, cv: int = 5) -> dict:
+def cross_validate_model(model_name: str, X_train, y_train, cv: int = 3) -> dict:
     cfg = next(c for c in MODELS_CONFIG if c["name"] == model_name)
     model = cfg["model_class"](**cfg["default_params"])
     scores = cross_val_score(model, X_train, y_train, cv=cv, scoring="accuracy", n_jobs=-1)
