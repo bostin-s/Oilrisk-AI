@@ -10,6 +10,8 @@ warnings.filterwarnings("ignore")
 
 import numpy as np
 import pandas as pd
+import matplotlib
+matplotlib.use("Agg")  # Non-interactive backend — required for Render/headless servers
 import matplotlib.pyplot as plt
 import seaborn as sns
 
