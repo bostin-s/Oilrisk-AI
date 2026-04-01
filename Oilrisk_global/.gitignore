@@ -31,6 +31,9 @@ env/
 # ── Generated outputs — KEEP in git (pre-trained models strategy) ──
 # outputs/*.png   ← charts committed so Render doesn't re-generate
 # outputs/*.xlsx  ← excel committed
+# outputs/*.pkl   ← PRE-TRAINED MODELS — MUST be committed!
+#                    Without these, Render will re-train on every deploy!
+#                    Run: python main.py locally → commit outputs/*.pkl
 
 # ── Generated data — KEEP in git ──────────────────────────────
 # data/train_dataset.csv  ← committed for Render to load directly
